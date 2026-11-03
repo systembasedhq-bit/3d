@@ -46,9 +46,9 @@ jobs:
 
       - name: Notify Dokploy to redeploy
         run: |
-          curl -f -X POST "https://dokploy.julien-dacosta.dev/api/application.redeploy" \
+          curl -f -X POST "https://manage.julien-dacosta.dev/api/application.redeploy" \
             -H "x-api-key: ${{ secrets.DOKPLOY_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{
-                "applicationId": "vtWsA2xjN15KuM16y6YwK"
+                "applicationId": "jQaPt3xJbeB59M_VblA1L"
             }'
