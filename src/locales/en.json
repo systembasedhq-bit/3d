@@ -45,7 +45,7 @@
     "color": "Color:",
     "exposure": "Exposure:",
     "brightness": "Brightness (adds real value to the rendering):",
-    "systemBasedPreset": "System Based look (black + silver)"
+    "systemBasedPreset": "System-Based look (black + silver)"
   },
   "lighting": {
     "title": "💡 Lighting Controls",

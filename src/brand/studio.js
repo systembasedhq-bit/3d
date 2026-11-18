@@ -1,5 +1,5 @@
 /*
- * System Based — 3D Brand Studio
+ * System-Based — 3D Brand Studio
  *
  * One scene, a handful of "shots" (website hero, sections, pricing, community post,
  * avatar, banner, story). Every shot uses the same chrome blocks, the same studio
@@ -25,6 +25,9 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js'
+import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import sbSvg from '../../brand/logo/sb-monogram.svg?raw'
 
 const params = new URLSearchParams(location.search)
 const shotName = params.get('shot') || 'hero'
@@ -73,9 +76,24 @@ const PLANS = [
   },
 ]
 
-const minimark = '<span class="minimark"><i></i><i></i><i></i><i></i></span>'
-const lockup = (size) =>
-  `<div style="display:flex;align-items:center;gap:${size * 0.7}px;font-size:${size}px">${minimark}<span class="wordmark chrome-text" style="font-size:${size * 0.62}px">System Based</span></div>`
+// The SB monogram, traced from the master logo (brand/logo/original-lockup.webp)
+const SB_PATH = sbSvg.match(/ d="([^"]+)"/)[1]
+const SB_VIEW = sbSvg.match(/viewBox="([^"]+)"/)[1]
+// unique gradient ids: a gradient inside the hidden toolbar would otherwise blank every copy
+let gradId = 0
+const monogram = (h) =>
+  `<svg viewBox="${SB_VIEW}" width="${(h * SB_VIEW.split(' ')[2]) / SB_VIEW.split(' ')[3]}" height="${h}" style="display:block;flex:none" aria-hidden="true"><defs><linearGradient id="sbg${++gradId}" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#f4f5f7"/><stop offset=".5" stop-color="#a9aeb5"/><stop offset="1" stop-color="#e9ebee"/></linearGradient></defs><path fill="url(#sbg${gradId})" fill-rule="evenodd" d="${SB_PATH}"/></svg>`
+const minimark = monogram(18)
+
+// Master lockup: SB | SYSTEM-BASED / SYSTEMS OVER LUCK.
+const lockup = (size, { mark = true, tagline = true } = {}) =>
+  `<div style="display:flex;align-items:center;gap:${size * 0.75}px">
+    ${mark ? monogram(size * 1.5) + `<span style="width:1px;align-self:stretch;background:var(--sb-steel);opacity:.7"></span>` : ''}
+    <div style="display:flex;flex-direction:column;gap:${size * 0.42}px">
+      <span class="wordmark chrome-text" style="font-size:${size * 0.62}px;letter-spacing:.42em">System-Based</span>
+      ${tagline ? `<span style="font:400 ${size * 0.26}px var(--sb-font-body);letter-spacing:.62em;color:var(--sb-silver);text-transform:uppercase">Systems over luck.</span>` : ''}
+    </div>
+  </div>`
 
 /* ------------------------------------------------------------------ */
 /* Renderer, studio lighting, floor, post                              */
@@ -92,6 +110,13 @@ function createWorld(w, h) {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(BG)
   scene.environment = makeStudioEnvironment(renderer)
+  // The logo gets a brighter version of the same studio (an extra key card upper-left)
+  // so its flat faces read as bright brushed silver, like the master logo
+  mono.envMap = makeStudioEnvironment(renderer, [
+    [6, 4, [-3.5, 3, 8], 0.85],
+    [4, 3, [4, -2, 8], 0.2],
+  ])
+  mono.map = spunMetalTexture()
   scene.environmentIntensity = 1.0
 
   const camera = new THREE.PerspectiveCamera(30, w / h, 0.1, 100)
@@ -117,7 +142,7 @@ function createWorld(w, h) {
 }
 
 // Black room with long softboxes: this is what makes metal look like "chrome on black".
-function makeStudioEnvironment(renderer) {
+function makeStudioEnvironment(renderer, extra = []) {
   const room = new THREE.Scene()
   room.background = new THREE.Color(0x000000)
   const panel = (w, h, pos, intensity) => {
@@ -138,6 +163,7 @@ function makeStudioEnvironment(renderer) {
   panel(10, 0.6, [0, 1.5, -7], 2.5) // back rim
   panel(16, 2.2, [0, -0.6, 9], 0.38) // wide front card: every face gets the same soft sheen
   panel(9, 3, [2, -1, 9], 0.06) // whisper of fill so shadows aren't dead black
+  extra.forEach(([w, h, pos, k]) => panel(w, h, pos, k))
 
   const pmrem = new THREE.PMREMGenerator(renderer)
   const tex = pmrem.fromScene(room, 0.03).texture
@@ -276,24 +302,110 @@ function setLed(block, k) {
   led.material.color.setScalar(8 * k + 0.02)
 }
 
-// The 2x2 mark: A B / C D. A carries the status light ("start here", "system on").
+// The 3D SB: the traced monogram extruded into brushed chrome. Three pieces
+// (top of the S, bottom of the S, the B) so it can assemble on camera.
+// Same footprint as before: 2.12 units tall, bottom at y = -1.06.
+const MARK_H = 2.12
+const mono = new THREE.MeshPhysicalMaterial({
+  color: 0xf0f2f5,
+  metalness: 1,
+  roughness: 0.3,
+  anisotropy: 0.8,
+  anisotropyRotation: Math.PI / 4,
+  clearcoat: 0.6,
+  clearcoatRoughness: 0.12,
+  envMapIntensity: 1.0,
+})
+// Spun-metal finish: fine concentric rings, like the brushed highlights in the master logo.
+// ExtrudeGeometry UVs are shape coordinates (SVG units), so the texture is mapped onto that.
+function spunMetalTexture() {
+  const N = 1024
+  const c = document.createElement('canvas')
+  c.width = c.height = N
+  const g = c.getContext('2d')
+  g.fillStyle = '#e6e6e6'
+  g.fillRect(0, 0, N, N)
+  let seed = 7
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+  for (let r = 2; r < N; r += 1.5) {
+    const v = 222 + rnd() * 33
+    g.strokeStyle = `rgb(${v},${v},${v})`
+    g.lineWidth = 1 + rnd() * 1.5
+    g.beginPath()
+    g.arc(N * 0.42, N * 0.5, r, 0, Math.PI * 2)
+    g.stroke()
+  }
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping
+  t.repeat.set(1 / 1700, 1 / 1700)
+  t.offset.set(0.5, 0.5)
+  t.anisotropy = 8
+  return t
+}
+
+let sbShapes = null
+function monogramShapes() {
+  if (sbShapes) return sbShapes
+  const data = new SVGLoader().parse(sbSvg)
+  const [, , vw, vh] = SB_VIEW.split(' ').map(Number)
+  // Shapes stay in SVG units (1000 tall); makeMark scales the finished geometry.
+  // toCreasedNormals hashes positions at 0.01, so building small would merge vertices.
+  sbShapes = data.paths
+    .flatMap((p) => SVGLoader.createShapes(p))
+    .map((shape) => {
+      // flip SVG y-down into three's y-up and centre on the origin
+      const pts = shape.getPoints().map((v) => new THREE.Vector2(v.x - vw / 2, vh / 2 - v.y))
+      const flipped = new THREE.Shape(pts)
+      const c = pts.reduce((a, v) => a.add(v), new THREE.Vector2()).divideScalar(pts.length)
+      return { shape: flipped, c }
+    })
+    .sort((a, b) => a.c.x + a.c.y * 0.01 - (b.c.x + b.c.y * 0.01))
+  return sbShapes
+}
+
+// Keep the front and back faces perfectly flat so the chrome reads as one plane
+function flattenCaps(g) {
+  const pos = g.attributes.position
+  const nor = g.attributes.normal
+  const a = new THREE.Vector3()
+  const b = new THREE.Vector3()
+  const c = new THREE.Vector3()
+  for (let i = 0; i < pos.count; i += 3) {
+    a.fromBufferAttribute(pos, i)
+    b.fromBufferAttribute(pos, i + 1)
+    c.fromBufferAttribute(pos, i + 2)
+    const n = b.sub(a).cross(c.sub(a)).normalize()
+    if (Math.abs(n.z) > 0.999) for (let j = 0; j < 3; j++) nor.setXYZ(i + j, 0, 0, Math.sign(n.z))
+  }
+  nor.needsUpdate = true
+}
+
 function makeMark() {
   const mark = new THREE.Group()
-  const step = 0.56
-  const layout = [
-    ['A', -step, step],
-    ['B', step, step],
-    ['C', -step, -step],
-    ['D', step, -step],
-  ]
-  const blocks = layout.map(([k, x, y]) => {
-    const b = makeBlock(k, { lit: k === 'A' })
-    b.position.set(x, y, 0)
-    b.userData.home = new THREE.Vector3(x, y, 0)
-    mark.add(b)
-    return b
+  const [, , , vh] = SB_VIEW.split(' ').map(Number)
+  const k = MARK_H / vh
+  const u = 1 / k // one scene unit in SVG units
+  const pieces = monogramShapes().map(({ shape, c }) => {
+    let g = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.3 * u,
+      bevelEnabled: true,
+      bevelThickness: 0.035 * u,
+      bevelSize: 0.024 * u,
+      bevelSegments: 5,
+      curveSegments: 1,
+    })
+    g.translate(0, 0, -0.15 * u)
+    g = toCreasedNormals(g, Math.PI / 6)
+    flattenCaps(g)
+    g.scale(k, k, k)
+    c.multiplyScalar(k)
+    const m = new THREE.Mesh(g, mono)
+    m.userData.c = c
+    mark.add(m)
+    return m
   })
-  mark.userData.blocks = blocks
+  mark.userData.pieces = pieces
   return mark
 }
 
@@ -305,22 +417,30 @@ const clamp01 = (x) => Math.min(1, Math.max(0, x))
 const easeOutExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x))
 const easeInOutCubic = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2)
 
-// Blocks fly in from the four corners and lock into the grid, then the light comes on.
-function animateMark(mark, t) {
-  mark.userData.blocks.forEach((b, i) => {
-    const p = easeOutExpo(clamp01((t - 0.15 - i * 0.14) / 2.0))
-    const home = b.userData.home
-    const dir = home.clone().normalize()
-    b.position.set(
-      home.x + dir.x * 2.4 * (1 - p),
-      home.y + dir.y * 2.4 * (1 - p),
-      home.z + (i % 2 ? -1.6 : 1.2) * (1 - p),
-    )
-    b.rotation.set((1 - p) * (i % 2 ? 1.2 : -0.9), (1 - p) * (i < 2 ? -1.4 : 1.1), (1 - p) * 0.6)
+const easeOutBack = (x) => 1 + 2.2 * Math.pow(x - 1, 3) + 1.2 * Math.pow(x - 1, 2)
+
+// The three SB pieces slide in along the logo's diagonal cuts and lock together,
+// then a light sweep runs across the chrome.
+const ENTRY = [
+  [-2.6, 1.8, -2.2, 0.5], // S top: from upper-left, behind
+  [-1.2, -2.4, 1.6, -0.6], // S bottom: from below, in front
+  [3.2, 0.6, -1.4, 0.8], // B: from the right, behind
+]
+function animateMark(mark, t, scene) {
+  mark.userData.pieces.forEach((m, i) => {
+    const raw = clamp01((t - 0.2 - i * 0.22) / 1.7)
+    const p = easeOutBack(raw)
+    const [x, y, z, r] = ENTRY[i]
+    m.position.set(x * (1 - p), y * (1 - p), z * (1 - p))
+    m.rotation.set(r * 0.6 * (1 - p), -r * (1 - p), r * 0.3 * (1 - p))
   })
-  const on = clamp01((t - 2.55) / 0.25)
-  const flicker = t > 2.55 && t < 2.75 ? (Math.sin(t * 90) > 0 ? 1 : 0.2) : 1
-  setLed(mark.userData.blocks[0], on * flicker)
+  if (scene) {
+    // light sweep after the lock (t = 2.4s to 3.9s), then a slow idle drift
+    const sweep = easeInOutCubic(clamp01((t - 2.4) / 1.5))
+    const r = -0.9 + sweep * 1.5 + Math.sin(Math.max(0, t - 3.9) * 0.3) * 0.12
+    scene.environmentRotation.y = r
+    mono.envMapRotation.y = r
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -334,16 +454,16 @@ const SHOTS = {
     h: 1080,
     overlay: `
       <nav style="position:absolute;left:120px;right:120px;top:44px;display:flex;align-items:center;justify-content:space-between">
-        ${lockup(30)}
+        ${lockup(26, { tagline: false })}
         <div style="display:flex;gap:44px;font:500 16px var(--sb-font-body);color:var(--sb-silver)">
           <span>Systems</span><span>Pricing</span><span>Community</span><span>Work</span>
         </div>
         <span class="btn" style="padding:13px 20px;font-size:15px">Book a call</span>
       </nav>
       <div style="position:absolute;left:120px;top:300px;width:820px" >
-        <div class="eyebrow" data-in="2.7"><span class="dot" style="margin-right:12px"></span>Systems online for local businesses</div>
-        <h1 class="display chrome-text" data-in="2.9" style="font-size:76px;margin:30px 0 30px">Your business,<br/>on a system.</h1>
-        <p class="body" data-in="3.1" style="font-size:22px;width:600px">Every call answered. Every lead followed up. Every job booked. Built, run and reported by System Based.</p>
+        <div class="eyebrow" data-in="2.7"><span class="dot" style="margin-right:12px"></span>AI client response for local businesses</div>
+        <h1 class="display chrome-text" data-in="2.9" style="font-size:80px;margin:30px 0 30px">Systems<br/>over luck.</h1>
+        <p class="body" data-in="3.1" style="font-size:22px;width:600px">Every call answered. Every lead followed up. Every job booked. Built, run and reported by System-Based.</p>
         <div data-in="3.3" style="display:flex;gap:16px;margin-top:44px">
           <span class="btn primary">Book a strategy call &rarr;</span>
           <span class="btn">See the system</span>
@@ -352,18 +472,19 @@ const SHOTS = {
       <div class="mono" data-in="3.5" style="position:absolute;left:120px;bottom:48px;font-size:13px;letter-spacing:.2em;color:var(--sb-steel)">A&nbsp; CLIENT RESPONSE &nbsp;·&nbsp; B&nbsp; GROWTH &nbsp;·&nbsp; C&nbsp; BRAND &amp; BUILD &nbsp;·&nbsp; D&nbsp; CUSTOM AI &amp; OPS</div>`,
     build({ scene, camera, w, h }) {
       const mark = makeMark()
-      mark.position.set(1.85, 0.05, 0)
-      mark.rotation.y = -0.55
+      mark.scale.setScalar(0.72)
+      mark.position.set(2.15, -1.06 + 1.06 * 0.72, 0)
+      mark.rotation.y = -0.42
       scene.add(mark)
       addFloor(scene, w, h, -1.06, mark.position)
       camera.position.set(0, 0.5, 8.6)
       const look = new THREE.Vector3(0, -0.05, 0)
       return (t) => {
         if (anim) {
-          animateMark(mark, t)
+          animateMark(mark, t, scene)
           const d = easeInOutCubic(clamp01(t / 4.5))
           camera.position.set(0.9 * (1 - d), 0.5 + 0.5 * (1 - d), 8.6 + 2.2 * (1 - d))
-          mark.rotation.y = -0.5 + Math.sin(Math.max(0, t - 4.5) * 0.35) * 0.08
+          mark.rotation.y = -0.42 + Math.sin(Math.max(0, t - 4.5) * 0.35) * 0.06
         }
         camera.lookAt(look)
       }
@@ -376,7 +497,7 @@ const SHOTS = {
     h: 1080,
     overlay: `
       <div style="position:absolute;top:90px;left:0;right:0;text-align:center">
-        <div class="eyebrow">The System Based model</div>
+        <div class="eyebrow">The System-Based model</div>
         <h2 class="display chrome-text" style="font-size:58px;margin-top:26px">Four systems. One business.</h2>
         <p class="body" style="font-size:20px;margin-top:20px;color:var(--sb-steel)">Every service sits in exactly one. Most clients start with A.</p>
       </div>
@@ -480,26 +601,26 @@ const SHOTS = {
     h: 1350,
     overlay: `
       <div style="position:absolute;top:96px;left:0;right:0;text-align:center">
-        <div class="eyebrow">The System Based community</div>
+        <div class="eyebrow">The System-Based community</div>
         <h1 class="display chrome-text" style="font-size:88px;margin-top:34px;letter-spacing:.04em">PRESSURE<br/>BUILT</h1>
       </div>
       <div class="scrim"></div>
       <div style="position:absolute;bottom:92px;left:0;right:0;text-align:center">
         <div class="mono" style="font-size:20px;letter-spacing:.18em;color:var(--sb-silver)">FREE &nbsp;&rarr;&nbsp; MEMBERS &nbsp;&rarr;&nbsp; DONE-FOR-YOU</div>
-        <div style="font-size:18px;color:var(--sb-steel);margin-top:20px">Systems, ads and AI for owners who want to run on a system.</div>
+        <div style="font-size:18px;color:var(--sb-steel);margin-top:20px;letter-spacing:.5em;text-transform:uppercase">Systems over luck.</div>
       </div>`,
     build({ scene, camera, w, h }) {
       const mark = makeMark()
-      mark.rotation.y = 0.55
-      mark.scale.setScalar(0.85)
+      mark.rotation.y = -0.3
+      mark.scale.setScalar(0.6)
       scene.add(mark)
-      addFloor(scene, w, h, -1.06 * 0.85)
+      addFloor(scene, w, h, -1.06 * 0.6)
       camera.position.set(0, 1.0, 10.2)
       const look = new THREE.Vector3(0, 0.05, 0)
       return (t) => {
         if (anim) {
-          animateMark(mark, t)
-          mark.rotation.y = 0.55 + Math.sin(t * 0.4) * 0.12
+          animateMark(mark, t, scene)
+          mark.rotation.y = -0.3 + Math.sin(t * 0.4) * 0.08
         }
         camera.lookAt(look)
       }
@@ -514,16 +635,17 @@ const SHOTS = {
     build({ scene, camera, w, h, finish }) {
       finish.uniforms.uVignette.value = 0.7
       const mark = makeMark()
-      mark.rotation.y = -0.38
-      mark.rotation.x = 0.05
+      mark.rotation.y = -0.28
+      mark.scale.setScalar(0.78)
+      mark.position.y = -1.06 + 1.06 * 0.78
       scene.add(mark)
       addFloor(scene, w, h, -1.06)
       camera.position.set(0, 0.35, 8.2)
       const look = new THREE.Vector3(0, -0.12, 0)
       return (t) => {
         if (anim) {
-          animateMark(mark, t)
-          mark.rotation.y = -0.38 + Math.sin(t * 0.5) * 0.15
+          animateMark(mark, t, scene)
+          mark.rotation.y = -0.28 + Math.sin(t * 0.5) * 0.1
         }
         camera.lookAt(look)
       }
@@ -536,20 +658,19 @@ const SHOTS = {
     h: 500,
     overlay: `
       <div style="position:absolute;left:96px;top:50%;transform:translateY(-50%)">
-        ${lockup(64)}
-        <div class="mono" style="margin-top:30px;font-size:15px;letter-spacing:.2em;color:var(--sb-steel)">CLIENT RESPONSE · GROWTH · BRAND &amp; BUILD · CUSTOM AI</div>
+        ${lockup(64, { mark: false })}
       </div>`,
     build({ scene, camera, w, h }) {
       const mark = makeMark()
-      mark.position.set(3.5, 0, 0)
-      mark.rotation.y = -0.6
-      mark.scale.setScalar(0.95)
+      mark.position.set(4.0, 0, 0)
+      mark.rotation.y = -0.45
+      mark.scale.setScalar(0.8)
       scene.add(mark)
-      addFloor(scene, w, h, -1.06 * 0.95, mark.position)
+      addFloor(scene, w, h, -1.06 * 0.8, mark.position)
       camera.position.set(0, 0.3, 9)
       const look = new THREE.Vector3(0, -0.15, 0)
       return (t) => {
-        if (anim) animateMark(mark, t)
+        if (anim) animateMark(mark, t, scene)
         camera.lookAt(look)
       }
     },
@@ -560,26 +681,28 @@ const SHOTS = {
     w: 1080,
     h: 1920,
     overlay: `
-      <div style="position:absolute;top:110px;left:0;right:0;display:flex;justify-content:center">${lockup(34)}</div>
+      <div style="position:absolute;top:110px;left:0;right:0;display:flex;justify-content:center">${lockup(46, { mark: false, tagline: false })}</div>
       <div class="scrim" style="height:52%"></div>
       <div style="position:absolute;left:90px;right:90px;bottom:250px">
-        <h2 class="display chrome-text" style="font-size:66px" data-in="2.8">Every call<br/>answered.</h2>
-        <p class="body" style="font-size:30px;margin-top:34px" data-in="3.1">Every lead followed up. Every job booked. Automatically.</p>
+        <h2 class="display chrome-text" style="font-size:74px" data-in="2.8">Systems<br/>over luck.</h2>
+        <p class="body" style="font-size:30px;margin-top:34px" data-in="3.1">Every call answered. Every lead followed up. Every job booked.</p>
       </div>
       <div style="position:absolute;left:0;right:0;bottom:110px;text-align:center" data-in="3.4">
         <span class="btn primary" style="font-size:24px;padding:24px 36px">Book a strategy call</span>
       </div>`,
     build({ scene, camera, w, h }) {
       const mark = makeMark()
-      mark.rotation.y = -0.45
+      mark.rotation.y = -0.3
+      mark.scale.setScalar(0.66)
+      mark.position.y = -1.06 + 1.06 * 0.66
       scene.add(mark)
       addFloor(scene, w, h, -1.06)
       camera.position.set(0, 0.8, 13)
       const look = new THREE.Vector3(0, -1.25, 0)
       return (t) => {
         if (anim) {
-          animateMark(mark, t)
-          mark.rotation.y = -0.45 + Math.sin(Math.max(0, t - 3) * 0.4) * 0.1
+          animateMark(mark, t, scene)
+          mark.rotation.y = -0.3 + Math.sin(Math.max(0, t - 3) * 0.4) * 0.07
         }
         camera.lookAt(look)
       }
@@ -680,7 +803,7 @@ function buildToolbar(current) {
     return `?${q}`
   }
   bar.innerHTML =
-    `<span style="display:flex;align-items:center;gap:10px;margin-right:12px;font-size:20px">${minimark}<span class="wordmark" style="font-size:12px;color:var(--sb-chrome)">Studio</span></span>` +
+    `<span style="display:flex;align-items:center;gap:10px;margin-right:12px">${minimark}<span class="wordmark" style="font-size:12px;color:var(--sb-chrome)">Studio</span></span>` +
     Object.entries(SHOTS)
       .map(
         ([k, s]) =>
