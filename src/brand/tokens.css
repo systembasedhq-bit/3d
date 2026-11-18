@@ -1,0 +1,30 @@
+/* System Based — brand tokens. One source of truth for web, decks and the 3D studio. */
+:root {
+  /* Core palette: black + silver, nothing else */
+  --sb-obsidian: #0a0a0b; /* page background */
+  --sb-carbon: #141416; /* cards, panels */
+  --sb-graphite: #2a2c30; /* borders, dividers */
+  --sb-steel: #5e636b; /* muted text, icons */
+  --sb-silver: #b9bdc4; /* body text on black */
+  --sb-chrome: #e6e8eb; /* headings */
+  --sb-white: #f7f7f8; /* primary buttons, the status light */
+
+  /* The one gradient: polished chrome. Use on the wordmark and big headlines only. */
+  --sb-chrome-gradient: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #d9dce0 38%,
+    #8a8f97 52%,
+    #c9ccd1 66%,
+    #f2f3f5 100%
+  );
+
+  /* Type */
+  --sb-font-display: 'Michroma', 'Eurostile', 'Arial Black', sans-serif;
+  --sb-font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sb-font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Shape */
+  --sb-radius: 10px;
+  --sb-radius-lg: 18px;
+}

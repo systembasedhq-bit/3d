@@ -44,7 +44,8 @@
     "colorBackground": "Couleur de fond",
     "color": "Couleur:",
     "exposure": "Exposition:",
-    "brightness": "Luminosité (apporte un vrai plus au rendu):"
+    "brightness": "Luminosité (apporte un vrai plus au rendu):",
+    "systemBasedPreset": "Style System Based (noir + argent)"
   },
   "lighting": {
     "title": "💡 Contrôles Éclairage",

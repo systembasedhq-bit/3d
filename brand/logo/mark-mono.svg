@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- One-colour mark for stamps, embroidery, favicons. Set fill via currentColor. -->
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M11 4h28a7 7 0 0 1 7 7v28a7 7 0 0 1-7 7H11a7 7 0 0 1-7-7V11a7 7 0 0 1 7-7Zm25 36.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z"/>
+    <rect x="54" y="4" width="42" height="42" rx="7"/>
+    <rect x="4" y="54" width="42" height="42" rx="7"/>
+    <rect x="54" y="54" width="42" height="42" rx="7"/>
+  </g>
+</svg>

@@ -1,0 +1,192 @@
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: #000;
+  color: var(--sb-silver);
+  font-family: var(--sb-font-body);
+  overflow: hidden;
+  height: 100%;
+}
+
+/* ---------- Preview chrome (hidden when rendering) ---------- */
+#toolbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  background: #0d0d0f;
+  border-bottom: 1px solid var(--sb-graphite);
+  z-index: 10;
+  overflow-x: auto;
+}
+#toolbar a,
+#toolbar button {
+  font: 500 12px/1 var(--sb-font-mono);
+  color: var(--sb-silver);
+  background: transparent;
+  border: 1px solid var(--sb-graphite);
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+#toolbar a.active {
+  color: var(--sb-obsidian);
+  background: var(--sb-white);
+  border-color: var(--sb-white);
+}
+#toolbar .spacer {
+  flex: 1;
+}
+#viewport {
+  position: fixed;
+  inset: 48px 0 0 0;
+  display: grid;
+  place-items: center;
+}
+body.render #toolbar {
+  display: none;
+}
+body.render #viewport {
+  inset: 0;
+  display: block;
+}
+
+/* ---------- Stage: fixed pixel size, scaled to fit in preview ---------- */
+#stage {
+  position: relative;
+  overflow: hidden;
+  background: var(--sb-obsidian);
+  transform-origin: center center;
+  flex: none;
+}
+body.render #stage {
+  transform: none !important;
+}
+#stage canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+#overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---------- Brand type ---------- */
+.chrome-text {
+  background: var(--sb-chrome-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.wordmark {
+  font-family: var(--sb-font-display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.eyebrow {
+  font: 500 15px/1 var(--sb-font-mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--sb-steel);
+}
+.display {
+  font-family: var(--sb-font-display);
+  color: var(--sb-chrome);
+  line-height: 1.12;
+  letter-spacing: 0.01em;
+}
+.body {
+  color: var(--sb-silver);
+  line-height: 1.5;
+}
+.mono {
+  font-family: var(--sb-font-mono);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 600 17px/1 var(--sb-font-body);
+  padding: 18px 26px;
+  border-radius: var(--sb-radius);
+  border: 1px solid var(--sb-graphite);
+  color: var(--sb-chrome);
+}
+.btn.primary {
+  background: var(--sb-white);
+  color: var(--sb-obsidian);
+  border-color: var(--sb-white);
+}
+.dot {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 6px #fff,
+    0 0 18px rgba(255, 255, 255, 0.6);
+}
+
+/* Mini 2x2 mark, used in nav + lockups */
+.minimark {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12%;
+  width: 1em;
+  height: 1em;
+}
+.minimark i {
+  display: block;
+  border-radius: 18%;
+  background: linear-gradient(160deg, #f4f5f7, #9aa0a8 60%, #d7dadf);
+  position: relative;
+}
+.minimark i:first-child::after {
+  content: '';
+  position: absolute;
+  width: 26%;
+  height: 26%;
+  right: 14%;
+  bottom: 14%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 4px #fff;
+}
+
+/* Labels that follow 3D objects */
+.tag {
+  position: absolute;
+  transform: translate(-50%, 0);
+  text-align: center;
+  white-space: nowrap;
+}
+.fade {
+  transition: none;
+}
+
+/* Darkens the floor behind copy so text always reads */
+.scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, rgba(10, 10, 11, 0.92) 55%);
+}

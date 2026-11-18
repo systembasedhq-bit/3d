@@ -1,6 +1,12 @@
 <template>
   <aside class="card bg-base-100 shadow-sm">
     <div class="p-5 flex flex-col gap-3">
+      <button class="btn btn-neutral btn-sm" @click="applySystemBasedPreset">
+        {{ t('background.systemBasedPreset') }}
+      </button>
+
+      <div class="divider"></div>
+
       <section>
         <AppCheckbox v-model="imgBackground" :label="t('background.imageBackground')" />
         <div v-if="imgBackground" class="flex flex-col gap-1 mt-5">
@@ -95,6 +101,7 @@ import AppCheckbox from '@/components/AppCheckbox.vue'
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { hexToHSL, hslToHex } from '@/helpers/colors-helper.js'
+import { lightingSettings } from '@/states/lighting-settings-state.js'
 
 const { t } = useI18n()
 
@@ -134,6 +141,30 @@ const onImageSelected = () => {
     }
   }
   reader.readAsDataURL(file)
+}
+
+// System Based look: graphite-to-black studio, cool white key light, silver rim
+const applySystemBasedPreset = () => {
+  imgBackground.value = false
+  colorBackground.value = true
+  backgroundSettings.color1 = 'hsl(220, 6%, 7%)'
+  backgroundSettings.color2 = 'hsl(240, 4%, 1%)'
+  backgroundSettings.backgroundBrightness = 1.0
+  backgroundSettings.exposureCompensation = 1.0
+
+  lightingSettings.ambientIntensity = 0.12
+  lightingSettings.directionalEnabled = true
+  lightingSettings.directionalColor = '#f4f6ff'
+  lightingSettings.directionalIntensity = 4
+  lightingSettings.directionalPosition.x = -2.5
+  lightingSettings.directionalPosition.y = 2
+  lightingSettings.directionalPosition.z = 1.5
+  lightingSettings.spotEnabled = true
+  lightingSettings.spotColor = '#dfe6ff'
+  lightingSettings.spotIntensity = 6
+  lightingSettings.spotPosition.x = 2.5
+  lightingSettings.spotPosition.y = 1.5
+  lightingSettings.spotPosition.z = -2
 }
 
 const backgroundColor1Proxy = computed({
