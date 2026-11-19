@@ -101,7 +101,14 @@ function fit(renderer, composer, camera, canvas) {
 /* Hero                                                                */
 /* ------------------------------------------------------------------ */
 
-export function createHero(canvas, { onLocked } = {}) {
+/**
+ * Chapter 1, "Enter the system": the SB pieces assemble centre-screen, a light sweeps
+ * the chrome, then the logo glides into its hero position as the page is revealed.
+ * @param {HTMLCanvasElement} canvas
+ * @param {{ intro?: boolean, onIntroEnd?: () => void, onLocked?: () => void }} opts
+ * @returns {{ skip(): void } | undefined}
+ */
+export function createHero(canvas, { intro = true, onIntroEnd, onLocked } = {}) {
   const renderer = makeRenderer(canvas)
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(BG)
@@ -117,27 +124,27 @@ export function createHero(canvas, { onLocked } = {}) {
   if (!LOW) addFloor(scene, 1200, 700, -1.06)
   const composer = makeComposer(renderer, scene, camera)
 
-  // Layout: logo on the right on wide screens, centred above the copy on tall ones
-  const layout = { base: new THREE.Vector3(), look: new THREE.Vector3(), rotY: -0.4, s: 0.72 }
+  // Two layouts: centre stage for the intro, then the hero position beside the copy
+  const stage = { pos: new THREE.Vector3(), look: new THREE.Vector3(), rotY: -0.12, s: 0.8 }
+  const home = { pos: new THREE.Vector3(), look: new THREE.Vector3(), rotY: -0.4, s: 0.72 }
+  let camZ = 8.6
   const relayout = () => {
     if (!fit(renderer, composer, camera, canvas)) return
     const portrait = camera.aspect < 1
-    layout.s = portrait ? 0.5 : camera.aspect < 1.4 ? 0.62 : 0.72
-    mark.scale.setScalar(layout.s)
-    layout.base.set(portrait ? 0 : camera.aspect < 1.4 ? 1.35 : 2.05, -1.06 + 1.06 * layout.s, 0)
-    layout.rotY = portrait ? -0.25 : -0.4
-    camera.position.set(0, 0.5, portrait ? 10.5 : 8.6)
-    // portrait: push the logo into the top third, above the copy
-    layout.look.set(0, portrait ? -0.7 * (10.5 * Math.tan(Math.PI / 12)) - 0.05 : -0.05, 0)
-    camera.lookAt(layout.look)
+    camZ = portrait ? 10.5 : 8.6
+    const half = camZ * Math.tan(Math.PI / 12)
+    stage.s = portrait ? 0.56 : 0.8
+    stage.pos.set(0, -1.06 + 1.06 * stage.s, 0)
+    stage.look.set(0, -0.05, 0)
+    home.s = portrait ? 0.5 : camera.aspect < 1.4 ? 0.62 : 0.72
+    home.pos.set(portrait ? 0 : camera.aspect < 1.4 ? 1.35 : 2.05, -1.06 + 1.06 * home.s, 0)
+    home.rotY = portrait ? -0.25 : -0.4
+    // portrait: the logo sits in the top third, above the copy
+    home.look.set(0, portrait ? -0.7 * half - 0.05 : -0.05, 0)
   }
   relayout()
-  addEventListener('resize', () => {
-    relayout()
-    if (REDUCED) draw(10)
-  })
 
-  // Pointer parallax
+  // Pointer parallax (after the intro)
   const target = { x: 0, y: 0 }
   const cur = { x: 0, y: 0 }
   addEventListener('pointermove', (e) => {
@@ -145,20 +152,34 @@ export function createHero(canvas, { onLocked } = {}) {
     target.y = e.clientY / innerHeight - 0.5
   })
 
+  const ASSEMBLED = 3.4 // pieces locked and light sweep done
+  const GLIDE = 1.3 // centre stage to hero position
+  let offset = intro ? 0 : ASSEMBLED + GLIDE
   let locked = false
+  let ended = false
+  const look = new THREE.Vector3()
   const draw = (t) => {
     animateMark(mark, Math.min(t, 8), scene)
+    const g = easeInOutCubic(clamp01((t - ASSEMBLED) / GLIDE))
+    const s = stage.s + (home.s - stage.s) * g
+    mark.scale.setScalar(s)
+    mark.position.lerpVectors(stage.pos, home.pos, g)
     cur.x += (target.x - cur.x) * 0.05
     cur.y += (target.y - cur.y) * 0.05
-    mark.position.copy(layout.base)
-    mark.rotation.y = layout.rotY + cur.x * 0.35 + Math.sin(t * 0.3) * 0.04
-    mark.rotation.x = cur.y * 0.15
-    const d = easeInOutCubic(clamp01(t / 4))
-    camera.position.x = 0.9 * (1 - d)
-    camera.lookAt(layout.look)
-    if (!locked && t > 2.4) {
+    mark.rotation.y =
+      stage.rotY + (home.rotY - stage.rotY) * g + (cur.x * 0.35 + Math.sin(t * 0.3) * 0.04) * g
+    mark.rotation.x = cur.y * 0.15 * g
+    const dolly = easeInOutCubic(clamp01(t / ASSEMBLED))
+    camera.position.set(0.6 * (1 - dolly), 0.5, camZ + 1.6 * (1 - dolly))
+    look.lerpVectors(stage.look, home.look, g)
+    camera.lookAt(look)
+    if (!locked && t > ASSEMBLED + GLIDE * 0.35) {
       locked = true
       onLocked?.()
+    }
+    if (!ended && t >= ASSEMBLED + GLIDE) {
+      ended = true
+      onIntroEnd?.()
     }
     if (composer) {
       composer.passes[3].uniforms.uTime.value = t
@@ -166,16 +187,29 @@ export function createHero(canvas, { onLocked } = {}) {
     } else renderer.render(scene, camera)
   }
 
+  addEventListener('resize', () => {
+    relayout()
+    if (REDUCED) draw(10)
+  })
   if (REDUCED) {
     draw(10)
     onLocked?.()
-    return
+    onIntroEnd?.()
+    return { skip() {} }
   }
   let t0 = null
+  let last = 0
   visibilityLoop(canvas, (now) => {
     if (t0 === null) t0 = now
-    draw(now - t0)
+    last = now - t0 + offset
+    draw(last)
   })
+  return {
+    // jump straight to the glide
+    skip() {
+      if (last < ASSEMBLED) offset += ASSEMBLED - last
+    },
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -218,7 +252,7 @@ export function createFit(canvas, order) {
   ])
 
   const blocks = order.map((k) => {
-    const b = makeBlock(k, { lit: k === 'A' })
+    const b = makeBlock(k, { lit: k === 'CR' })
     // brighter studio than the default, so the blocks read silver against the dark stage
     b.children[0].material = silver.clone()
     b.children[0].material.envMap = bright
@@ -277,8 +311,8 @@ export function createFit(canvas, order) {
       b.rotation.set(0.08, -0.35 + (1 - a) * 1.6 + Math.sin(t * 0.5 + i) * 0.03, 0)
       b.scale.setScalar(0.6 + 0.4 * a)
       b.visible = a > 0.01
-      b.children[0].material.envMapIntensity = done || active ? 1 : 0.45
-      if (order[i] === 'A') setLed(b, clamp01((P - i) * 2))
+      b.children[0].material.envMapIntensity = done || active ? 1.7 : 0.55
+      if (order[i] === 'CR') setLed(b, clamp01((P - i) * 2))
     })
     const connect = clamp01((P - n + 0.3) / 0.6)
     links.forEach((m, i) => {
@@ -337,7 +371,7 @@ export function createViewer() {
           w: 1.3,
           h: 0.34,
           d: 1.3,
-          lit: k === 'A',
+          lit: k === 'CR',
           letterAt: [-0.5, 0],
           ledAt: [0.52, 0],
         })
@@ -347,7 +381,7 @@ export function createViewer() {
       })
       g.rotation.x = 0.25
     } else {
-      const b = makeBlock(spec.letter, { lit: spec.letter === 'A' })
+      const b = makeBlock(spec.letter, { lit: spec.letter === 'CR' })
       b.scale.setScalar(1.25)
       g.add(b)
     }
@@ -387,7 +421,10 @@ export function createViewer() {
         const h = host.clientHeight
         renderer.setSize(w, h, false)
         camera.aspect = w / h
-        camera.position.z = spec.stack ? 6.2 : 5.6
+        // far enough back that the object fits the narrower side of the panel
+        const half = spec.stack ? 1.25 : 1.15
+        const fitZ = half / (Math.tan(Math.PI / 12) * Math.min(1, camera.aspect))
+        camera.position.z = Math.max(spec.stack ? 6.2 : 5.6, fitZ + 1)
         camera.updateProjectionMatrix()
         cancelAnimationFrame(raf)
         t0 = performance.now()

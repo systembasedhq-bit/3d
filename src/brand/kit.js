@@ -119,16 +119,19 @@ const silver = new THREE.MeshPhysicalMaterial({
 const letterTextures = {}
 function letterTexture(letter) {
   if (letterTextures[letter]) return letterTextures[letter]
+  // one character on a square, two (a system code such as CR) on a 2:1 strip
+  const wide = letter.length > 1
   const c = document.createElement('canvas')
-  c.width = c.height = 256
+  c.width = wide ? 512 : 256
+  c.height = 256
   const g = c.getContext('2d')
   g.fillStyle = '#000'
-  g.fillRect(0, 0, 256, 256)
+  g.fillRect(0, 0, c.width, 256)
   g.fillStyle = '#fff'
   g.font = '500 190px "JetBrains Mono"'
   g.textAlign = 'center'
   g.textBaseline = 'middle'
-  g.fillText(letter, 128, 140)
+  g.fillText(letter, c.width / 2, 140)
   const t = new THREE.CanvasTexture(c)
   t.anisotropy = 8
   return (letterTextures[letter] = t)
@@ -145,9 +148,10 @@ function makeBlock(letter, o = {}) {
   group.add(body)
 
   if (letter) {
-    const [lx, ly] = o.letterAt || [-w / 2 + 0.16, h / 2 - 0.16]
+    const wide = letter.length > 1
+    const [lx, ly] = o.letterAt || [-w / 2 + (wide ? 0.24 : 0.16), h / 2 - 0.16]
     const etch = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.15, 0.15),
+      new THREE.PlaneGeometry(wide ? 0.3 : 0.15, 0.15),
       new THREE.MeshStandardMaterial({
         color: 0x2b2d31,
         metalness: 0.4,

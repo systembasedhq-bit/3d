@@ -1,5 +1,13 @@
 /*
- * Work & live demos. Every project, demo and live site you build goes here.
+ * Work, case studies and live demos. Every project, demo and live site goes here.
+ *
+ * Case study fields (all optional; the pop-up shows the ones that are filled):
+ *   problem     the starting situation, in the client's terms
+ *   solution    what was installed, as catalog codes: ['CR-01', 'BB-01']
+ *   technology  tools and platforms used
+ *   process     what happened, step by step
+ *   results     VERIFIED outcomes only: [{ metric, value, period, source }]
+ *   approved    true once the client has signed off on publishing their name and results
  *
  * To add a project:
  *   1. Put a screenshot (about 1600px wide, .jpg) in src/site/media/ and import it below.
@@ -43,7 +51,19 @@ export const WORK = [
       'Website, community and social asset kit',
       'A brand system covering colour, type and motion rules',
     ],
-    systems: ['C'],
+    systems: ['BB'],
+    problem:
+      'A new company with a strong name and a 2D logo, but no visual system to carry it across a website, social and sales material.',
+    solution: ['BB-02', 'BB-04'],
+    technology: ['Three.js', 'Vector tracing', 'Vite', 'Playwright + FFmpeg rendering'],
+    process: [
+      'Traced the master SB artwork to a vector',
+      'Extruded it into three interlocking 3D pieces',
+      'Built a studio that renders every asset from one scene',
+      'Exported stills, the logo reveal and the website hero',
+    ],
+    results: [],
+    approved: true,
     links: [],
     media: [
       { video: logoReveal, poster: avatar },
@@ -68,7 +88,18 @@ export const WORK = [
       'One-click System-Based black and silver look',
       'Video recording in the browser',
     ],
-    systems: ['C', 'D'],
+    systems: ['BB', 'AO'],
+    problem:
+      'Turning screen recordings of websites and booking flows into marketing video took hours in editing tools.',
+    solution: ['BB-04', 'AO-05'],
+    technology: ['Vue', 'Three.js', 'MediaRecorder'],
+    process: [
+      'Load a 3D phone model',
+      'Map the recording onto its screen',
+      'Add lighting, camera and export controls',
+    ],
+    results: [],
+    approved: true,
     links: [{ label: 'Open the tool', url: '../index.html' }],
     media: [{ img: mockupTool }],
   },
@@ -78,11 +109,13 @@ export const WORK = [
     client: 'System-Based',
     type: 'brand',
     status: 'live',
-    summary: 'The four systems and three plans as chrome 3D graphics.',
+    summary: 'The four systems and three packages as chrome 3D graphics.',
     about:
-      'The system diagram and pricing stack used across the site and in sales decks. Each block is a system. Plans are stacks of them, so you can see what each one adds.',
+      'The system diagram and package stack used across the site and in sales decks. Each block is a system, and packages are stacks of them, so you can see what each one adds.',
     built: ['Four-system diagram', 'Pricing stack graphic', 'Matching social versions'],
-    systems: ['C'],
+    systems: ['BB'],
+    solution: ['BB-03', 'BB-04'],
+    approved: true,
     links: [],
     media: [{ img: sections }, { img: pricing }],
   },
@@ -100,7 +133,9 @@ export const WORK = [
       'Missed-call text back',
       'Booking into a demo calendar',
     ],
-    systems: ['A'],
+    systems: ['CR'],
+    solution: ['CR-01', 'CR-02', 'CR-04'],
+    approved: true,
     links: [],
     media: [],
   },
@@ -116,6 +151,12 @@ export const WORK = [
     about: '',
     built: [],
     systems: [],
+    problem: '',
+    solution: [],
+    technology: [],
+    process: [],
+    results: [],
+    approved: false,
     links: [{ label: 'Visit site', url: '' }],
     media: [],
   },
@@ -129,6 +170,12 @@ export const WORK = [
     about: '',
     built: [],
     systems: [],
+    problem: '',
+    solution: [],
+    technology: [],
+    process: [],
+    results: [],
+    approved: false,
     links: [{ label: 'Visit site', url: '' }],
     media: [],
   },
@@ -142,6 +189,12 @@ export const WORK = [
     about: '',
     built: [],
     systems: [],
+    problem: '',
+    solution: [],
+    technology: [],
+    process: [],
+    results: [],
+    approved: false,
     links: [{ label: 'Visit site', url: '' }],
     media: [],
   },
@@ -149,6 +202,7 @@ export const WORK = [
 
 export const WORK_TYPES = [
   { id: 'all', label: 'All work' },
+  { id: 'case', label: 'Case studies' },
   { id: 'site', label: 'Live sites' },
   { id: 'demo', label: 'Live demos' },
   { id: 'brand', label: 'Brand' },
