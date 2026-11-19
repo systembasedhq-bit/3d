@@ -691,9 +691,72 @@ function goInquiry(interest) {
   setTimeout(() => $('#f-name').focus({ preventScroll: true }), REDUCED ? 0 : 700)
 }
 
-const utm = Object.fromEntries(
-  [...new URLSearchParams(location.search)].filter(([k]) => k.startsWith('utm_')),
-)
+const pageParams = new URLSearchParams(location.search)
+const utm = Object.fromEntries([...pageParams].filter(([k]) => k.startsWith('utm_')))
+// When embedded in a GHL page, the embed passes the real page URL as ghl_page
+const sourcePage = pageParams.get('ghl_page') || location.href
+
+/* Flat fields for GHL: Inbound Webhook mapping works best with top-level keys */
+function ghlFields(inq) {
+  const [first, ...rest] = inq.contact.name.trim().split(/\s+/)
+  const pkg = inq.scope.package
+  const tags = [
+    'sb-inquiry',
+    pkg && `sb-pkg-${pkg}`,
+    inq.need && `sb-sys-${inq.need.system.toLowerCase()}`,
+    inq.scope.customProposal && 'sb-custom',
+    inq.scope.projects.length && 'sb-project',
+    inq.scope.performanceInterest && 'sb-performance',
+  ].filter(Boolean)
+  return {
+    first_name: first || '',
+    last_name: rest.join(' '),
+    full_name: inq.contact.name,
+    email: inq.contact.email,
+    phone: inq.contact.phone,
+    company_name: inq.contact.business,
+    tags: tags.join(','),
+    sb_interest: inq.scope.interest,
+    sb_package: pkg ? pkgById(pkg).name : '',
+    sb_services: inq.scope.services.join(', '),
+    sb_projects: inq.scope.projects.join(', '),
+    sb_system: inq.need ? system(inq.need.system).name : '',
+    sb_need: inq.need ? inq.need.text : '',
+    sb_custom_proposal: inq.scope.customProposal ? 'yes' : 'no',
+    sb_performance: inq.scope.performanceInterest ? 'yes' : 'no',
+    sb_message: inq.message,
+    sb_source_page: inq.source.page,
+    utm_source: utm.utm_source || '',
+    utm_medium: utm.utm_medium || '',
+    utm_campaign: utm.utm_campaign || '',
+    utm_content: utm.utm_content || '',
+  }
+}
+
+/* POST to the webhook. If the browser blocks a JSON request (CORS), fall back to a
+   simple form-encoded POST, which needs no CORS approval from the receiving server. */
+async function sendInquiry(url, inq) {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(inq),
+    })
+    if (!res.ok) throw new Error('status ' + res.status)
+    return true
+  } catch (err) {
+    if (!(err instanceof TypeError)) throw err
+    const flat = Object.fromEntries(
+      Object.entries(inq).filter(([, v]) => v === null || typeof v !== 'object'),
+    )
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: new URLSearchParams({ ...flat, payload: JSON.stringify(inq) }),
+    })
+    return true
+  }
+}
 $('#inquiry-form').addEventListener('submit', async (e) => {
   e.preventDefault()
   const form = e.currentTarget
@@ -727,23 +790,31 @@ $('#inquiry-form').addEventListener('submit', async (e) => {
       performanceInterest: !!data.performance,
     },
     message: data.message || '',
-    source: { page: location.href, referrer: document.referrer, utm },
+    source: { page: sourcePage, referrer: document.referrer, utm },
   }
+  Object.assign(inquiry, ghlFields(inquiry))
   msg.className = 'form-msg'
   const done = () => {
+    // Let a host page (the GHL embed) fire its own conversion pixels
+    if (window.parent !== window)
+      window.parent.postMessage(
+        { type: 'sb:inquiry', package: inquiry.sb_package, tags: inquiry.tags },
+        '*',
+      )
     form.innerHTML = `<div class="full sh-block"><h3 class="display" style="font-size:30px">Scope received.</h3>
       <p class="lede">Thanks, ${esc(data.name)}. We’ll review it and reach out within one business day.</p>
-      ${CONFIG.BOOKING_URL ? `<a class="btn primary" href="${esc(CONFIG.BOOKING_URL)}" target="_blank" rel="noopener" style="justify-self:start">Pick a time now ↗</a>` : ''}</div>`
+      ${
+        CONFIG.BOOKING_URL
+          ? CONFIG.BOOKING_EMBED
+            ? `<p class="lede">Pick a time for your fit call now:</p><iframe class="booking" src="${esc(CONFIG.BOOKING_URL)}" title="Book your fit call" loading="lazy"></iframe>`
+            : `<a class="btn primary" href="${esc(CONFIG.BOOKING_URL)}" target="_blank" rel="noopener" style="justify-self:start">Pick a time now ↗</a>`
+          : ''
+      }</div>`
   }
   if (CONFIG.FORM_ENDPOINT) {
     msg.textContent = 'Sending…'
     try {
-      const res = await fetch(CONFIG.FORM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(inquiry),
-      })
-      if (!res.ok) throw new Error(res.status)
+      await sendInquiry(CONFIG.FORM_ENDPOINT, inquiry)
       done()
     } catch {
       msg.className = 'form-msg err'

@@ -2986,3 +2986,11 @@ form.book label.check input {
     grid-template-columns: 1fr;
   }
 }
+
+iframe.booking {
+  width: 100%;
+  min-height: 680px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}

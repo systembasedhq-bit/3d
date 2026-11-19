@@ -14,7 +14,8 @@
     "format": "prettier --write src/",
     "brand": "vite --open /brand-studio.html",
     "brand:render": "node scripts/render-brand.mjs",
-    "site": "vite --open /site/"
+    "site": "vite --open /site/",
+    "build:ghl": "node scripts/build-ghl.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
