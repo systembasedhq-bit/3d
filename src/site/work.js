@@ -25,6 +25,7 @@
  *   media     [{ img } or { video, poster }]. The first one is the card image.
  *   embed     a URL that may be shown live inside the pop-up (only for sites that allow framing)
  */
+import { CONFIG } from './config.js'
 import hero from './media/hero.jpg'
 import avatar from './media/avatar.jpg'
 import community from './media/community.jpg'
@@ -100,7 +101,7 @@ export const WORK = [
     ],
     results: [],
     approved: true,
-    links: [{ label: 'Open the tool', url: '../index.html' }],
+    links: [{ label: 'Open the tool', url: CONFIG.MOCKUP_TOOL_URL }],
     media: [{ img: mockupTool }],
   },
   {

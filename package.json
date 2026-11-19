@@ -15,7 +15,8 @@
     "brand": "vite --open /brand-studio.html",
     "brand:render": "node scripts/render-brand.mjs",
     "site": "vite --open /site/",
-    "build:ghl": "node scripts/build-ghl.mjs"
+    "build:ghl": "node scripts/build-ghl.mjs",
+    "build:ghl-dropin": "node scripts/build-ghl-dropin.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

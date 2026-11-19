@@ -795,12 +795,16 @@ $('#inquiry-form').addEventListener('submit', async (e) => {
   Object.assign(inquiry, ghlFields(inquiry))
   msg.className = 'form-msg'
   const done = () => {
-    // Let a host page (the GHL embed) fire its own conversion pixels
+    // Conversion pixels: on the page itself (GHL drop-in), or the host page (iframe embed)
     if (window.parent !== window)
       window.parent.postMessage(
         { type: 'sb:inquiry', package: inquiry.sb_package, tags: inquiry.tags },
         '*',
       )
+    else {
+      window.fbq?.('track', 'Lead')
+      window.gtag?.('event', 'generate_lead')
+    }
     form.innerHTML = `<div class="full sh-block"><h3 class="display" style="font-size:30px">Scope received.</h3>
       <p class="lede">Thanks, ${esc(data.name)}. We’ll review it and reach out within one business day.</p>
       ${
