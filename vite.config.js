@@ -19,6 +19,7 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         brand: resolve(import.meta.dirname, 'brand-studio.html'),
+        site: resolve(import.meta.dirname, 'site/index.html'),
       },
     },
   },
