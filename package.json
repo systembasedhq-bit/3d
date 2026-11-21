@@ -16,7 +16,9 @@
     "brand:render": "node scripts/render-brand.mjs",
     "site": "vite --open /site/",
     "build:ghl": "node scripts/build-ghl.mjs",
-    "build:ghl-dropin": "node scripts/build-ghl-dropin.mjs"
+    "build:ghl-dropin": "node scripts/build-ghl-dropin.mjs",
+    "test:content": "node scripts/validate-site.mjs",
+    "test:e2e": "node scripts/e2e-site.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

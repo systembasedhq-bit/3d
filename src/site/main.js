@@ -1,3 +1,8 @@
+/*
+ * System-Based website: boots every section and routes shared clicks.
+ * The new walkthrough, diagnostic, community and inquiry live in ./experience/.
+ * Services, packages and prices come only from src/catalog/catalog.js.
+ */
 import '@fontsource/michroma/400.css'
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
@@ -18,21 +23,21 @@ import {
   system,
   servicesOf,
   recommend,
-  VERSION,
 } from '../catalog/catalog.js'
-import { STATEMENT, NEEDS, FIT_CHAPTERS, JOURNEY, FAQ } from './content.js'
+import { STATEMENT, SYSTEM_LINES, PACKAGE_FIT, FAQ } from './content.js'
 import { WORK, WORK_TYPES } from './work.js'
-import { REDUCED, webglAvailable, createHero, createFit, createViewer } from './scenes.js'
+import { webglAvailable, createHero } from './scenes.js'
+import { $, $$, esc, safeUrl, session, REDUCED, scrollToId } from './experience/util.js'
+import { getScope, setScope, onScope, toggleService } from './experience/scope-store.js'
+import { track } from './experience/analytics.js'
+import { createDiagnostic } from './experience/diagnostic.js'
+import { createStory } from './experience/story.js'
+import { createCommunity } from './experience/community.js'
+import { createInquiry } from './experience/inquiry.js'
 import avatarImg from './media/avatar.jpg'
+import heroImg from './media/hero.jpg'
+import storyImg from './media/build-story.jpg'
 
-const $ = (s, el = document) => el.querySelector(s)
-const $$ = (s, el = document) => [...el.querySelectorAll(s)]
-const esc = (s = '') =>
-  String(s).replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-  )
-const money = (n) => '$' + n.toLocaleString('en-US')
 const pkgById = (id) => PACKAGES.find((p) => p.id === id)
 const GL = webglAvailable()
 const safe = (fn) => {
@@ -43,34 +48,21 @@ const safe = (fn) => {
     return null
   }
 }
-const store = {
-  get: (k) => safe(() => sessionStorage.getItem(k)),
-  set: (k, v) => safe(() => sessionStorage.setItem(k, v)),
-}
 
 document.documentElement.classList.add('js')
 if (REDUCED) document.documentElement.classList.add('reduced')
 $('#year').textContent = new Date().getFullYear()
 
-/* What the visitor has told us so far; it travels with the inquiry */
-const scope = {
-  need: null, // index into NEEDS
-  system: null, // system code
-  package: null, // package id
-  services: new Set(), // service codes from the composer or explorer
-  interest: 'Not sure yet',
-}
-
-/* ---------- Decisions: proposed vs approved values ---------- */
-const anyProposed = () => CONFIG.SHOW_PROPOSED
+/* ---------- Commercial decisions: approved vs proposed ---------- */
 const showValue = (dec) => dec && dec.value != null && (dec.approved || CONFIG.SHOW_PROPOSED)
 const tag = (dec) => (dec.approved ? '' : ' <span class="proposed">Proposed</span>')
-const priceHTML = (dec, fmt = money, fallback = 'Confirmed on your fit call') =>
+const money = (n) => '$' + n.toLocaleString('en-US')
+const priceHTML = (dec, fmt = money, fallback = 'Confirmed after scoping') =>
   showValue(dec) ? `${fmt(dec.value)}${tag(dec)}` : `<span class="muted">${fallback}</span>`
 const soldAsLabel = {
-  'setup+managed': 'Setup + managed',
-  managed: 'Managed',
-  project: 'Project',
+  'setup+managed': 'Set up + managed',
+  managed: 'Managed monthly',
+  project: 'One-time project',
   'project|add-on': 'Project or add-on',
 }
 
@@ -90,14 +82,22 @@ const onScrollNav = () => nav.classList.toggle('scrolled', scrollY > 30)
 addEventListener('scroll', onScrollNav, { passive: true })
 onScrollNav()
 const burger = $('.burger')
+const menu = $('#menu')
 const setMenu = (open) => {
   document.body.classList.toggle('menu-open', open)
   document.body.classList.toggle('locked', open)
   burger.setAttribute('aria-expanded', open)
-  $('#menu').setAttribute('aria-hidden', !open)
+  menu.setAttribute('aria-hidden', !open)
+  if (open) $('a', menu).focus({ preventScroll: true })
 }
 burger.addEventListener('click', () => setMenu(!document.body.classList.contains('menu-open')))
 $$('#menu a').forEach((a) => a.addEventListener('click', () => setMenu(false)))
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.body.classList.contains('menu-open')) {
+    setMenu(false)
+    burger.focus()
+  }
+})
 const navLinks = $$('.nav-links a')
 const spy = new IntersectionObserver(
   (entries) =>
@@ -122,22 +122,20 @@ const reveal = new IntersectionObserver(
         reveal.unobserve(e.target)
       }
     }),
-  { rootMargin: '0px 0px -8% 0px' },
+  { rootMargin: '0px 0px -6% 0px' },
 )
-const watchReveal = (root = document) =>
-  $$('[data-reveal]', root).forEach((el) => reveal.observe(el))
-watchReveal()
+$$('[data-reveal]').forEach((el) => reveal.observe(el))
 
 /* ================================================================== */
-/* 1. Enter the system                                                 */
+/* Hero + intro                                                        */
 /* ================================================================== */
 const hero = $('.hero')
-const playIntro = GL && !REDUCED && store.get('sb-intro') !== 'seen'
+const playIntro = GL && !REDUCED && session.get('sb-intro') !== 'seen'
 let heroCtl = null
 const endIntro = () => {
   document.body.classList.remove('intro')
   hero.classList.add('ready')
-  store.set('sb-intro', 'seen')
+  session.set('sb-intro', 'seen')
 }
 if (!playIntro) document.body.classList.remove('intro')
 if (GL) {
@@ -158,7 +156,6 @@ function heroPoster() {
   )
   hero.classList.add('ready')
 }
-// Any input skips straight to the glide; a safety net ends the intro regardless
 const skip = () => heroCtl?.skip()
 $('#intro-skip').addEventListener('click', skip)
 ;['wheel', 'touchstart', 'keydown'].forEach((ev) =>
@@ -169,13 +166,13 @@ $('#intro-skip').addEventListener('click', skip)
 if (playIntro) setTimeout(() => document.body.classList.contains('intro') && endIntro(), 7000)
 
 $('#rail').innerHTML = SYSTEMS.map(
-  (s) => `<button class="chip" data-explore="${s.code}"><b>${s.n}</b>${esc(s.name)}</button>`,
+  (s) => `<button type="button" class="chip" data-explore="${s.code}">${esc(s.name)}</button>`,
 ).join('')
 
 /* ================================================================== */
-/* 2. Understand the company                                           */
+/* What we do                                                          */
 /* ================================================================== */
-$('#statement-line').innerHTML = esc(STATEMENT.line)
+$('#statement-line').textContent = STATEMENT.line
 $('#statement-body').textContent = STATEMENT.body
 $('#statement-who').textContent = STATEMENT.who
 $('#facts').innerHTML = STATEMENT.facts
@@ -186,68 +183,56 @@ $('#facts').innerHTML = STATEMENT.facts
   .join('')
 
 /* ================================================================== */
-/* 3. Identify the problem                                             */
+/* Diagnostic → walkthrough → community invite                         */
 /* ================================================================== */
-const needList = $('#need-list')
-needList.innerHTML = NEEDS.map(
-  (n, i) =>
-    `<button class="need-opt" aria-pressed="false" data-need="${i}"><span>${esc(n.q)}</span><b>0${i + 1}</b></button>`,
-).join('')
-const renderNeed = (i, user = false) => {
-  const n = NEEDS[i]
-  const s = system(n.system)
-  const pkg = pkgById(n.start)
-  if (user) {
-    scope.need = i
-    scope.system = s.code
-    if (pkg) scope.package = pkg.id
-    scope.interest = pkg ? `${pkg.name} package` : 'Project'
-    renderScope()
-  }
-  const out = $('#need-out')
-  out.classList.remove('swap')
-  void out.offsetWidth
-  out.classList.add('swap')
-  out.innerHTML = `
-    <div class="eyebrow">Recommended system · ${s.n} ${esc(s.name)}</div>
-    <h3 class="display">${pkg ? `Start with ${esc(pkg.name)}` : 'Start with a project'}</h3>
-    <p class="lede">${esc(n.why)}</p>
-    <div class="tiers"><span>${s.n} · ${esc(s.name)}</span>${pkg ? `<i>→</i><span>${esc(pkg.name)} package</span>` : '<i>→</i><span>One-time project</span>'}</div>
-    <div class="need-actions">
-      <button class="btn primary" data-explore="${s.code}">Explore ${esc(s.name)}</button>
-      ${pkg ? `<button class="btn" data-config-pkg="${pkg.id}">See ${esc(pkg.name)}</button>` : '<a class="btn" href="#projects">See projects</a>'}
-    </div>
-    <span class="big-letter chrome" aria-hidden="true">${s.n}</span>`
-  $$('.need-opt', needList).forEach((x) => x.setAttribute('aria-pressed', +x.dataset.need === i))
-}
-needList.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-need]')
-  if (b) renderNeed(+b.dataset.need, true)
+const inquiry = createInquiry()
+const community = createCommunity({
+  media: { identity: heroImg, story: storyImg },
+  isInquiryBusy: inquiry.busy,
 })
-renderNeed(0)
-$('[data-need="0"]').setAttribute('aria-pressed', 'true')
+const showRecommendation = (sc) => {
+  if (sc.recommend.packageId) focusPackage(sc.recommend.packageId)
+  else scrollToId('projects')
+}
+createDiagnostic({
+  onSeeIncluded: () =>
+    showRecommendation({ recommend: { packageId: getScope().recommendedPackageId } }),
+})
+createStory({
+  onBeat: (beat, sc, sequential) => sequential && community.maybeInvite(beat),
+  onChoose: showRecommendation,
+})
 
 /* ================================================================== */
-/* 4. Explore the four systems                                         */
+/* The four systems                                                    */
 /* ================================================================== */
+const VISUAL = {
+  CR: `<div class="mini mini-cr"><span class="b in">Hi, is anyone free tomorrow?</span><span class="b out">Yes! 9 AM or 1:30 PM?</span><span class="b in">9 works.</span><span class="tick">Booked</span></div>`,
+  GR: `<div class="mini mini-gr"><div class="flowline"><span>Ad</span><i></i><span>Page</span><i></i><span>Lead</span></div><div class="bars"><b style="--h:35%"></b><b style="--h:55%"></b><b style="--h:48%"></b><b style="--h:72%"></b><b style="--h:86%"></b></div></div>`,
+  BB: `<div class="mini mini-bb"><div class="win"><span class="bar"></span><span class="h"></span><span class="l"></span><span class="l s"></span><span class="cta">Book</span></div></div>`,
+  AO: `<div class="mini mini-ao"><svg viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true"><path d="M40 26 L100 60 M160 26 L100 60 M40 94 L100 60 M160 94 L100 60"/></svg><span class="n n1">Inbox</span><span class="n n2">CRM</span><span class="n n3">Calendar</span><span class="n n4">Team</span><span class="hub">${monogram(18)}</span></div>`,
+}
 let exSystem = 'CR'
 $('#ex-tabs').innerHTML = SYSTEMS.map(
   (
     s,
-  ) => `<button class="ex-tab" role="tab" data-tab="${s.code}" aria-selected="${s.code === exSystem}">
-    <b>${s.n}</b><span><strong>${esc(s.name)}</strong><em>${esc(s.scope)}</em></span><i class="code">${s.code}</i></button>`,
+  ) => `<button type="button" class="ex-tab" role="tab" data-tab="${s.code}" aria-selected="${s.code === exSystem}">
+    <span><strong>${esc(s.name)}</strong><em>${esc(SYSTEM_LINES[s.code])}</em></span></button>`,
 ).join('')
 const inPackages = (code) => PACKAGES.filter((p) => p.services.includes(code)).map((p) => p.name)
-const renderExplorer = () => {
+function renderExplorer(keepOpen) {
   const s = system(exSystem)
+  const picked = new Set(getScope().selectedServiceIds)
   const panel = $('#ex-panel')
-  panel.classList.remove('swap')
-  void panel.offsetWidth
-  panel.classList.add('swap')
+  if (!keepOpen) {
+    panel.classList.remove('swap')
+    void panel.offsetWidth
+    panel.classList.add('swap')
+  }
   panel.innerHTML = `
-    <div class="ex-head">
-      <div><div class="eyebrow">System ${s.n} · ${s.code}</div><h3 class="display">${esc(s.name)}</h3><p class="lede">${esc(s.job)}.</p></div>
-      <button class="btn sm" data-system3d="${s.code}">View in 3D</button>
+    <div class="ex-top">
+      <div class="ex-head"><h3 class="display">${esc(s.name)}</h3><p class="lede">${esc(SYSTEM_LINES[s.code])}</p></div>
+      ${VISUAL[s.code]}
     </div>
     <div class="ex-two">
       <div class="sh-block"><h4>The problem</h4><p>${esc(s.problem)}</p></div>
@@ -259,20 +244,20 @@ const renderExplorer = () => {
           `${i ? '<i></i>' : ''}<span style="animation-delay:${0.1 + i * 0.06}s">${esc(f)}</span>`,
       )
       .join('')}</div></div>
-    <div class="sh-block"><h4>Services in this system</h4>
+    <div class="sh-block"><h4>What’s included</h4>
       <div class="svc-list">${servicesOf(s.code)
         .map((v) => {
           const pk = inPackages(v.code)
-          const on = scope.services.has(v.code)
-          return `<details class="svc">
-            <summary><span class="code">${v.code}</span><strong>${esc(v.name)}</strong><span class="badge">${soldAsLabel[v.soldAs]}</span></summary>
+          const on = picked.has(v.code)
+          return `<details class="svc" data-svc="${v.code}"${keepOpen === v.code ? ' open' : ''}>
+            <summary><strong>${esc(v.name)}</strong><span class="badge">${soldAsLabel[v.soldAs]}</span></summary>
             <dl>
               <div><dt>You get</dt><dd>${esc(v.deliverables)}</dd></div>
               <div><dt>You provide</dt><dd>${esc(v.client)}</dd></div>
               <div><dt>After launch</dt><dd>${esc(v.ongoing)}</dd></div>
               <div><dt>Where it’s sold</dt><dd>${pk.length ? `In ${pk.join(', ')}` : v.soldAs.startsWith('project') ? 'As a one-time project' : 'As an add-on'}</dd></div>
             </dl>
-            <button class="link" data-add="${v.code}" aria-pressed="${on}">${on ? '✓ In your scope' : '+ Add to my scope'}</button>
+            <button type="button" class="link" data-add="${v.code}" aria-pressed="${on}">${on ? '✓ In your scope (remove)' : '+ Add to my scope'}</button>
           </details>`
         })
         .join('')}</div>
@@ -285,135 +270,42 @@ $('#ex-tabs').addEventListener('click', (e) => {
   if (!t) return
   exSystem = t.dataset.tab
   renderExplorer()
+  track('sb_system_explored', { system: exSystem })
 })
 renderExplorer()
 const explore = (code) => {
   exSystem = code
   renderExplorer()
-  document.getElementById('systems').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' })
+  scrollToId('systems')
+  track('sb_system_explored', { system: code })
 }
 
 /* ================================================================== */
-/* 5. See the infrastructure work                                      */
-/* ================================================================== */
-const chapters = [
-  ...FIT_CHAPTERS,
-  {
-    code: '',
-    title: 'One connected system.',
-    body: 'Each part feeds the next. Start with one, add the rest as the numbers justify it.',
-  },
-]
-$('#fit-chapters').innerHTML = chapters
-  .map(
-    (c, i) => `<div class="fit-ch${i === 0 ? ' on' : ''}">
-      <div class="eyebrow">${c.code ? `System ${system(c.code).n} · ${esc(system(c.code).name)}` : 'All four together'}</div>
-      <h3 class="display">${esc(c.title)}</h3>
-      <p>${esc(c.body)}</p>
-    </div>`,
-  )
-  .join('')
-$('#fit-progress').innerHTML = chapters.map(() => '<span></span>').join('')
-const fitScene = GL
-  ? safe(() =>
-      createFit(
-        $('#fit-canvas'),
-        FIT_CHAPTERS.map((c) => c.code),
-      ),
-    )
-  : null
-const fitEl = $('#fit')
-const fitChs = $$('.fit-ch')
-const fitBars = $$('#fit-progress span')
-let fitIdx = 0
-const onFitScroll = () => {
-  const r = fitEl.getBoundingClientRect()
-  const p = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)))
-  fitScene?.setProgress(p)
-  const n = chapters.length
-  const idx = Math.min(n - 1, Math.floor(p * n))
-  fitBars.forEach((b, i) => b.style.setProperty('--f', Math.min(1, Math.max(0, p * n - i))))
-  if (idx !== fitIdx) {
-    fitChs[fitIdx].classList.remove('on')
-    fitChs[idx].classList.add('on')
-    fitIdx = idx
-  }
-}
-if (!REDUCED) {
-  addEventListener('scroll', onFitScroll, { passive: true })
-  onFitScroll()
-}
-
-// Lead walkthrough + CRM + owner dashboard
-$('#steps').innerHTML = JOURNEY.map(
-  (s, i) => `<button class="step" role="tab" aria-selected="${i === 0}" data-step="${i}">
-    <b>0${i + 1}</b><span><strong>${esc(s.label)}</strong><span>${esc(s.caption)}</span></span></button>`,
-).join('')
-const renderStep = (i) => {
-  const step = JOURNEY[i]
-  const msgs = JOURNEY.slice(0, i + 1).flatMap((s) => s.chat)
-  const fresh = step.chat.length
-  $('#thread').innerHTML = msgs
-    .slice(-6)
-    .map((m, j, arr) => {
-      const k = j - (arr.length - fresh)
-      return `<div class="msg m-${m.from}" style="${k >= 0 ? `animation-delay:${k * 0.35}s` : 'animation:none'}">${esc(m.text)}</div>`
-    })
-    .join('')
-  $('#demo-time').textContent = step.time
-  const fields = Object.assign({}, ...JOURNEY.slice(0, i + 1).map((s) => s.fields))
-  $('#crm').innerHTML = `
-    <div class="crm-head"><strong>Lead · (555) 014-2290</strong><span class="status ${step.status.toLowerCase()}">${esc(step.status)}</span></div>
-    <div class="pipeline" aria-hidden="true">${JOURNEY.map((_, j) => `<i class="${j <= i ? 'on' : ''}"></i>`).join('')}</div>
-    <dl class="fields">${Object.entries(fields)
-      .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
-      .join('')}</dl>`
-  const k = step.kpi
-  $('#dash').innerHTML = `
-    <div class="dash-head"><strong>Owner dashboard</strong><span class="example-note">Example data</span></div>
-    <div class="kpis">
-      <div><span>New leads</span><strong>${k.leads}</strong></div>
-      <div><span>First reply</span><strong>${k.reply}</strong></div>
-      <div><span>Booked</span><strong>${k.booked}</strong></div>
-      <div><span>Follow-ups</span><strong>${k.followups}</strong></div>
-    </div>
-    <div class="at-work"><span class="example-note">Services at work</span>${step.codes
-      .map((c) => `<span class="chip sm"><b>${c}</b>${esc(service(c).name)}</span>`)
-      .join('')}</div>`
-  $$('.step').forEach((b) => b.setAttribute('aria-selected', +b.dataset.step === i))
-}
-$('#steps').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-step]')
-  if (b) renderStep(+b.dataset.step)
-})
-renderStep(0)
-
-/* ================================================================== */
-/* 6. Explore actual work                                              */
+/* Work                                                                */
 /* ================================================================== */
 const published = WORK.filter((w) => w.published)
-const isCase = (w) => !!(w.problem && w.process?.length)
+const isClientCase = (w) => w.clientCase && w.approved
+const STATUS = { live: 'Live project', demo: 'Working demo', soon: 'Concept / in progress' }
+const TYPE_LABEL = { site: 'Website', demo: 'Demo', brand: 'Brand', ai: 'AI & software' }
 let workFilter = 'all'
-const TYPE_LABEL = { site: 'Live site', demo: 'Live demo', brand: 'Brand', ai: 'AI & software' }
-const STATUS = { live: 'Live', demo: 'Demo', soon: 'Coming soon' }
 const typesInUse = new Set(published.map((w) => w.type))
 $('#filters').innerHTML = WORK_TYPES.filter(
-  (t) => t.id === 'all' || (t.id === 'case' ? published.some(isCase) : typesInUse.has(t.id)),
+  (t) => t.id === 'all' || (t.id === 'case' ? published.some(isClientCase) : typesInUse.has(t.id)),
 )
   .map(
     (t) =>
-      `<button class="chip${t.id === 'all' ? ' on' : ''}" data-filter="${t.id}">${esc(t.label)}</button>`,
+      `<button type="button" class="chip${t.id === 'all' ? ' on' : ''}" data-filter="${t.id}">${esc(t.label)}</button>`,
   )
   .join('')
 const cardMedia = (w) => {
   const m = w.media[0]
-  if (!m)
-    return `<div class="placeholder"><span class="chrome">${esc(w.systems[0] || 'SB')}</span></div>`
+  if (!m) return `<div class="placeholder"><span class="ph-glyph">${monogram(64)}</span></div>`
   return `<img src="${m.poster || m.img}" alt="" loading="lazy" />`
 }
-const renderWork = () => {
+function renderWork() {
   const list = published.filter(
-    (w) => workFilter === 'all' || (workFilter === 'case' ? isCase(w) : w.type === workFilter),
+    (w) =>
+      workFilter === 'all' || (workFilter === 'case' ? isClientCase(w) : w.type === workFilter),
   )
   $('#work-grid').innerHTML =
     list
@@ -421,17 +313,17 @@ const renderWork = () => {
         (
           w,
           i,
-        ) => `<button class="work-card${i === 0 && workFilter === 'all' ? ' wide' : ''}" data-work="${published.indexOf(w)}" style="animation-delay:${i * 0.07}s">
+        ) => `<button type="button" class="work-card${i === 0 && workFilter === 'all' ? ' wide' : ''}" data-work="${published.indexOf(w)}" style="animation-delay:${i * 0.07}s">
         <div class="work-media">${cardMedia(w)}</div>
         <div class="work-info">
-          <div class="work-meta"><span class="pill ${w.status}">${STATUS[w.status]}</span><span>${esc(TYPE_LABEL[w.type] || '')}</span>${isCase(w) ? '<span>Case study</span>' : ''}</div>
+          <div class="work-meta"><span class="pill ${w.status}">${STATUS[w.status]}</span><span>${esc(TYPE_LABEL[w.type] || '')}</span>${isClientCase(w) ? '<span>Client case study</span>' : ''}</div>
           <strong>${esc(w.title)}</strong>
           <p>${esc(w.summary)}</p>
         </div>
       </button>`,
       )
       .join('') +
-    `<button class="work-card next" data-book data-interest="Project"><span class="eyebrow">Your project</span><strong>Your business could be next.</strong><span class="link">Start a project →</span></button>`
+    `<button type="button" class="work-card next" data-book data-from="work"><span class="eyebrow">Your project</span><strong>Your business could be next.</strong><span class="link">Start a project →</span></button>`
 }
 $('#filters').addEventListener('click', (e) => {
   const b = e.target.closest('[data-filter]')
@@ -443,20 +335,18 @@ $('#filters').addEventListener('click', (e) => {
 renderWork()
 
 /* ================================================================== */
-/* 7. Configure the solution                                           */
+/* Packages + composer                                                 */
 /* ================================================================== */
-const draftNote = $('#draft-note')
-if (anyProposed()) {
-  draftNote.hidden = false
-  draftNote.innerHTML =
-    '<span class="proposed">Proposed</span> Prices and terms marked this way are under review and can change before you sign.'
+const anyUnapproved = PACKAGES.some((p) => !p.implementation.approved || !p.management.approved)
+if (anyUnapproved && CONFIG.SHOW_PROPOSED) {
+  $('#draft-note').hidden = false
+  $('#draft-note').innerHTML =
+    '<span class="proposed">Proposed</span> Prices marked this way are under review and can change before you sign.'
 }
-
-// Packages / composer toggle
 const ctoggle = $('#config-toggle')
-const moveThumb = (t) => {
-  const on = $('[aria-pressed="true"]', t)
-  const thumb = $('.thumb', t)
+const moveThumb = () => {
+  const on = $('[aria-pressed="true"]', ctoggle)
+  const thumb = $('.thumb', ctoggle)
   thumb.style.left = on.offsetLeft + 'px'
   thumb.style.width = on.offsetWidth + 'px'
 }
@@ -464,82 +354,94 @@ const setView = (v) => {
   $$('[data-view]', ctoggle).forEach((x) => x.setAttribute('aria-pressed', x.dataset.view === v))
   $('#view-packages').hidden = v !== 'packages'
   $('#view-composer').hidden = v !== 'composer'
-  moveThumb(ctoggle)
+  moveThumb()
+  if (v === 'composer') track('sb_composer_opened', {}, { once: true })
 }
 ctoggle.addEventListener('click', (e) => {
   const b = e.target.closest('[data-view]')
   if (b) setView(b.dataset.view)
 })
-requestAnimationFrame(() => moveThumb(ctoggle))
-addEventListener('resize', () => moveThumb(ctoggle))
-document.fonts?.ready.then(() => moveThumb(ctoggle))
+requestAnimationFrame(moveThumb)
+addEventListener('resize', moveThumb)
+document.fonts?.ready.then(moveThumb)
 
 const pkgSystems = (p) =>
   SYSTEMS.filter((s) => p.services.some((c) => service(c).system === s.code))
-const slabs = (codes) =>
-  `<div class="stack" aria-hidden="true">${[...codes]
-    .reverse()
-    .map(
-      (k, i) =>
-        `<div class="slab" style="animation-delay:${(codes.length - 1 - i) * 0.12}s">${k}${k === 'CR' ? '<span class="dot"></span>' : ''}</div>`,
-    )
-    .join('')}</div>`
-$('#plans').innerHTML = PACKAGES.map((p) => {
-  const sys = pkgSystems(p)
-  return `<article class="plan${p.featured ? ' featured' : ''}" id="pkg-${p.id}">
-    ${p.featured ? '<span class="badge">Most picked</span>' : ''}
-    ${slabs(sys.map((s) => s.code))}
-    <h3>${esc(p.name)} · ${sys.map((s) => s.n).join(' + ')}</h3>
-    <p class="summary">${esc(p.outcome)}</p>
-    <div class="fee-rows">
-      <div class="fee"><span>Implementation</span><strong>${priceHTML(p.implementation)}</strong><em>one-time</em></div>
-      <div class="fee"><span>Management</span><strong>${priceHTML(p.management)}</strong><em>per month</em></div>
-      <div class="fee"><span>Term</span><strong>${priceHTML(p.term, (v) => v)}</strong></div>
-    </div>
-    <ul>${p.services
-      .slice(0, 6)
-      .map((c) => `<li><b class="code">${c}</b>${esc(service(c).name)}</li>`)
-      .join(
-        '',
-      )}${p.services.length > 6 ? `<li class="more-li">+ ${p.services.length - 6} more services</li>` : ''}</ul>
-    ${p.performance ? '<button class="perf-pill" data-performance>Performance option available</button>' : ''}
-    <div style="display:grid;gap:10px;margin-top:auto">
-      <button class="btn ${p.featured ? 'primary' : ''}" data-book data-interest="${esc(p.name)} package" data-pkg="${p.id}">Start with ${esc(p.name)}</button>
-      <button class="link" data-plan="${p.id}" style="justify-self:center;font-size:14px">See what’s inside →</button>
-    </div>
-  </article>`
-}).join('')
+function renderPlans() {
+  const { recommendedPackageId, acceptedPackageId } = getScope()
+  $('#plans').innerHTML =
+    PACKAGES.map((p) => {
+      const rec = recommendedPackageId === p.id
+      const acc = acceptedPackageId === p.id
+      return `<article class="plan${rec ? ' recommended' : ''}${acc ? ' accepted' : ''}" id="pkg-${p.id}">
+      ${acc ? '<span class="badge">Your choice</span>' : rec ? '<span class="badge">Suggested for you</span>' : ''}
+      <h3>${esc(p.name)}</h3>
+      <p class="fit">${esc(PACKAGE_FIT[p.id])}</p>
+      <div class="sys-chips">${pkgSystems(p)
+        .map((s) => `<span>${esc(s.name)}</span>`)
+        .join('<i>+</i>')}</div>
+      <div class="fee-rows">
+        <div class="fee"><span>Implementation</span><strong>${priceHTML(p.implementation)}</strong><em>one-time</em></div>
+        <div class="fee"><span>Management</span><strong>${priceHTML(p.management)}</strong><em>per month</em></div>
+        <div class="fee"><span>Term</span><strong>${priceHTML(p.term, (v) => v)}</strong></div>
+      </div>
+      <p class="count">${p.services.length} services included</p>
+      <div style="display:grid;gap:10px;margin-top:auto">
+        <button type="button" class="btn ${rec || acc ? 'primary' : ''}" data-accept="${p.id}">${acc ? 'Selected · continue' : `Start with ${esc(p.name)}`}</button>
+        <button type="button" class="link" data-plan="${p.id}" style="justify-self:center;font-size:14px">See what’s included →</button>
+      </div>
+    </article>`
+    }).join('') +
+    `<article class="plan custom-plan"><h3>Custom project</h3><p class="fit">For a bounded design, build, software or automation requirement.</p>
+      <p class="muted">Pick exactly the services you need, or scope a one-time build.</p>
+      <div style="display:grid;gap:10px;margin-top:auto">
+        <button type="button" class="btn" data-view-composer>Build your own</button>
+        <a class="link" href="#projects" style="justify-self:center;font-size:14px">See one-time projects →</a>
+      </div></article>`
+}
+renderPlans()
+function focusPackage(id) {
+  setView('packages')
+  scrollToId('packages')
+  const card = document.getElementById('pkg-' + id)
+  if (!card) return
+  card.classList.remove('focus')
+  void card.offsetWidth
+  card.classList.add('focus')
+  track('sb_package_viewed', { package: id })
+}
 
-// Compare matrix
-const matrixCodes = [...new Set(PACKAGES.flatMap((p) => [...p.services, ...p.addOns]))].sort()
+const matrixCodes = [...new Set(PACKAGES.flatMap((p) => [...p.services, ...p.addOns]))]
 $('#matrix').innerHTML =
-  `<table class="matrix"><thead><tr><th>Service</th>${PACKAGES.map((p) => `<th>${esc(p.name)}</th>`).join('')}</tr></thead><tbody>${matrixCodes
-    .map(
-      (c) =>
-        `<tr><td><b class="code">${c}</b>${esc(service(c).name)}</td>${PACKAGES.map((p) =>
-          p.services.includes(c)
-            ? '<td class="yes">✓</td>'
-            : p.addOns.includes(c)
-              ? '<td class="add">Add-on</td>'
-              : '<td class="no">—</td>',
-        ).join('')}</tr>`,
-    )
-    .join(
-      '',
-    )}<tr><td>Usage limits (lines, minutes, posts, edit hours)</td>${PACKAGES.map((p) => `<td>${priceHTML(p.limits, (v) => v, 'Set on your call')}</td>`).join('')}</tr></tbody></table>`
+  `<table class="matrix"><thead><tr><th>Service</th>${PACKAGES.map((p) => `<th>${esc(p.name)}</th>`).join('')}</tr></thead><tbody>${SYSTEMS.map(
+    (s) =>
+      `<tr class="grp"><td colspan="${PACKAGES.length + 1}">${esc(s.name)}</td></tr>` +
+      matrixCodes
+        .filter((c) => service(c).system === s.code)
+        .map(
+          (c) =>
+            `<tr><td>${esc(service(c).name)}</td>${PACKAGES.map((p) =>
+              p.services.includes(c)
+                ? '<td class="yes">✓</td>'
+                : p.addOns.includes(c)
+                  ? '<td class="add">Add-on</td>'
+                  : '<td class="no">—</td>',
+            ).join('')}</tr>`,
+        )
+        .join(''),
+  ).join(
+    '',
+  )}<tr><td>Usage limits (lines, minutes, posts, edit hours)</td>${PACKAGES.map((p) => `<td>${priceHTML(p.limits, (v) => v, 'Set during scoping')}</td>`).join('')}</tr></tbody></table>`
 $('#compare-btn').addEventListener('click', (e) => {
   const m = $('#matrix')
   m.hidden = !m.hidden
   e.currentTarget.setAttribute('aria-expanded', !m.hidden)
-  e.currentTarget.textContent = m.hidden ? 'Compare every service' : 'Hide comparison'
+  e.currentTarget.textContent = m.hidden ? 'See every service compared' : 'Hide comparison'
 })
 
-// Composer
-const recurringFirst = (a, b) => (a.soldAs === 'project') - (b.soldAs === 'project')
 $('#comp-list').innerHTML = SYSTEMS.map(
   (s) =>
-    `<fieldset class="comp-group"><legend><b>${s.n}</b> ${esc(s.name)}</legend>${servicesOf(s.code)
-      .sort(recurringFirst)
+    `<fieldset class="comp-group"><legend>${esc(s.name)}</legend>${servicesOf(s.code)
       .map(
         (
           v,
@@ -550,60 +452,44 @@ $('#comp-list').innerHTML = SYSTEMS.map(
 ).join('')
 $('#comp-list').addEventListener('change', (e) => {
   if (e.target.type !== 'checkbox') return
-  if (e.target.checked) scope.services.add(e.target.value)
-  else scope.services.delete(e.target.value)
-  syncSelections()
+  const on = toggleService(e.target.value)
+  if (on) track('sb_service_added', { service: e.target.value })
 })
-function syncSelections() {
-  $$('#comp-list input').forEach((i) => (i.checked = scope.services.has(i.value)))
-  renderComposer()
-  renderExplorer()
-  renderScope()
-}
 function renderComposer() {
-  const codes = [...scope.services]
+  const codes = getScope().selectedServiceIds
+  $$('#comp-list input').forEach((i) => (i.checked = codes.includes(i.value)))
   const sum = $('#comp-sum')
   if (!codes.length) {
-    sum.innerHTML = `<div class="eyebrow">Your scope</div><h3 class="display">Tick the services you need.</h3>
-      <p class="muted">We’ll match you to the closest package, or flag it as a custom proposal.</p>`
+    sum.innerHTML = `<div class="eyebrow">Your scope</div><h3 class="display">Choose the services you need.</h3>
+      <p class="muted">We’ll point out the closest package, or treat it as a custom proposal.</p>`
     return
   }
   const r = recommend(codes)
-  const est = r.pkg && !r.custom
+  const fits = r.pkg && !r.custom
   sum.innerHTML = `
     <div class="eyebrow">Your scope · ${codes.length} service${codes.length > 1 ? 's' : ''}</div>
-    <h3 class="display">${est ? `${esc(r.pkg.name)} fits.` : r.pkg || r.projects.length ? 'Custom proposal.' : 'Custom proposal.'}</h3>
+    <h3 class="display">${fits ? `Closest fit: ${esc(r.pkg.name)}` : 'A custom proposal'}</h3>
     <p class="muted">${
-      est
-        ? `${esc(r.pkg.name)} covers ${codes.length - r.addOns.length - r.projects.length} of your selections${r.unused.length ? ` and includes ${r.unused.length} more` : ''}.`
-        : 'Your mix doesn’t match one package. We’ll price it service by service from the catalog after a fit call.'
+      fits
+        ? `${esc(r.pkg.name)} covers your recurring selections${r.unused.length ? ` and includes ${r.unused.length} more services` : ''}. Picking it is up to you.`
+        : 'Your mix doesn’t match one package. We’ll scope it service by service after a short call.'
     }</p>
-    ${
-      est
-        ? `<div class="fee-rows"><div class="fee"><span>Implementation</span><strong>${priceHTML(r.pkg.implementation)}</strong></div><div class="fee"><span>Management</span><strong>${priceHTML(r.pkg.management)}</strong><em>per month</em></div></div>`
-        : ''
-    }
-    ${r.addOns.length ? `<div class="sh-block"><h4>Added on top</h4><div class="syschips">${r.addOns.map((c) => `<span class="chip sm"><b>${c}</b>${esc(service(c).name)}</span>`).join('')}</div></div>` : ''}
-    ${r.projects.length ? `<div class="sh-block"><h4>Quoted as projects</h4><div class="syschips">${r.projects.map((c) => `<span class="chip sm"><b>${c}</b>${esc(service(c).name)}</span>`).join('')}</div></div>` : ''}
-    <p class="fine">An estimate to start the conversation, not a quote. Add-ons, projects and usage are confirmed on the fit call.</p>
+    <ul class="scope-list">${codes.map((c) => `<li>${esc(service(c).name)}<button type="button" class="link sm" data-add="${c}">Remove</button></li>`).join('')}</ul>
+    ${r.projects.length ? `<p class="muted">Quoted as one-time projects: ${r.projects.map((c) => esc(service(c).name)).join(', ')}.</p>` : ''}
+    <p class="fine-l">An estimate to start the conversation, not a quote or a checkout.</p>
     <div class="need-actions">
-      <button class="btn primary" data-book data-interest="${est ? `${esc(r.pkg.name)} package` : 'Custom proposal'}">Send this scope →</button>
-      <button class="link" id="comp-clear">Clear</button>
+      <button type="button" class="btn primary" data-book data-from="composer">Send this scope →</button>
+      ${fits ? `<button type="button" class="link" data-accept="${r.pkg.id}">Choose ${esc(r.pkg.name)}</button>` : ''}
+      <button type="button" class="link" id="comp-clear">Clear</button>
     </div>`
-  if (est) scope.package = r.pkg.id
 }
-renderComposer()
-document.addEventListener('click', (e) => {
-  if (e.target.closest('#comp-clear')) {
-    scope.services.clear()
-    syncSelections()
-  }
-})
 
-/* Projects */
+/* ================================================================== */
+/* Projects + upgrade path                                             */
+/* ================================================================== */
 $('#builds').innerHTML = PROJECTS.map(
   (p) =>
-    `<button class="build" data-book data-interest="Project: ${esc(p.name)}"><span class="code">${p.code}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}</span><em>${showValue(p.from) ? `From ${priceHTML(p.from)}` : 'Quoted after scoping'} →</em></button>`,
+    `<button type="button" class="build" data-project="${p.code}"><strong>${esc(p.name)}</strong><span>${esc(p.note)}</span><em>${showValue(p.from) ? `From ${priceHTML(p.from)}` : 'Quoted after scoping'} →</em></button>`,
 ).join('')
 $('#process').innerHTML = PROJECT_PROCESS.map(
   (p, i) =>
@@ -617,33 +503,24 @@ const PATH = [
     tag: showValue(p.management) ? `${money(p.management.value)}/mo` : 'Monthly',
   })),
 ]
-const track = $('#path-track')
-track.innerHTML = PATH.map(
+const pathEl = $('#path-track')
+pathEl.innerHTML = PATH.map(
   (p, i) =>
     `<div class="path-step"><span class="node">${String(i + 1).padStart(2, '0')}</span><strong>${esc(p.step)}</strong><span>${esc(p.note)}</span><em>${esc(p.tag)}</em></div>`,
 ).join('')
-const pathSteps = $$('.path-step', track)
+const pathSteps = $$('.path-step', pathEl)
 const onPath = () => {
-  const r = track.getBoundingClientRect()
+  const r = pathEl.getBoundingClientRect()
   const p = REDUCED
     ? 1
     : Math.min(1, Math.max(0, (innerHeight * 0.85 - r.top) / (innerHeight * 0.6)))
-  track.style.setProperty('--p', p)
+  pathEl.style.setProperty('--p', p)
   pathSteps.forEach((s, i) => s.classList.toggle('on', p >= i / (PATH.length - 1) - 0.02))
 }
 addEventListener('scroll', onPath, { passive: true })
 onPath()
 
-/* Pressure Built */
-$('#community-img').src = avatarImg
-$('#community-cta').innerHTML = CONFIG.COMMUNITY_URL
-  ? `<a class="btn primary" href="${esc(CONFIG.COMMUNITY_URL)}" target="_blank" rel="noopener">Visit Pressure Built ↗</a>`
-  : `<button class="btn primary" data-book data-interest="Pressure Built community">Get notified when it opens</button><span class="muted" style="align-self:center;font-size:14px">Opening soon</span>`
-new IntersectionObserver(
-  ([e]) => e.isIntersecting && $('#community-panel').classList.add('in'),
-).observe($('#community-panel'))
-
-/* FAQ */
+/* ---------- FAQ ---------- */
 $('#faq-list').innerHTML = FAQ.map(
   (f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`,
 ).join('')
@@ -653,197 +530,39 @@ $$('#faq-list details').forEach((d) =>
   }),
 )
 
-/* ================================================================== */
-/* 8. Start implementation                                             */
-/* ================================================================== */
-const INTERESTS = [
-  'Not sure yet',
-  ...PACKAGES.map((p) => `${p.name} package`),
-  'Custom proposal',
-  'Project',
-  ...PROJECTS.map((p) => `Project: ${p.name}`),
-  'Pressure Built community',
-]
-$('#f-interest').innerHTML = INTERESTS.map((o) => `<option>${esc(o)}</option>`).join('')
-function renderScope() {
-  const sel = $('#f-interest')
-  if (!INTERESTS.includes(scope.interest))
-    sel.insertAdjacentHTML('afterbegin', `<option>${esc(scope.interest)}</option>`)
-  sel.value = scope.interest
-  const rows = []
-  if (scope.need !== null) rows.push(['Problem', NEEDS[scope.need].q])
-  if (scope.system) rows.push(['System', `${system(scope.system).n} ${system(scope.system).name}`])
-  if (scope.package) rows.push(['Package', pkgById(scope.package).name])
-  if (scope.services.size) rows.push(['Services', [...scope.services].join(', ')])
-  $('#inq-scope').innerHTML = rows.length
-    ? `<dl class="fields">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`
-    : ''
+/* ---------- Scope bar: the current scope, one tap from the form ---------- */
+function renderScopeBar() {
+  const s = getScope()
+  const n = s.selectedServiceIds.length
+  const bar = $('#scope-bar')
+  const label = n
+    ? `${n} service${n > 1 ? 's' : ''} in your scope`
+    : s.acceptedPackageId
+      ? `${pkgById(s.acceptedPackageId).name} selected`
+      : ''
+  bar.hidden = !label
+  bar.innerHTML = label ? `<span class="dot"></span>${esc(label)} <b>Review →</b>` : ''
 }
-renderScope()
-$('#f-interest').addEventListener('change', (e) => (scope.interest = e.target.value))
+$('#scope-bar').addEventListener('click', () => inquiry.go('scope-bar'))
 
-function goInquiry(interest) {
-  if (interest) scope.interest = interest
-  renderScope()
-  closeSheet()
-  setMenu(false)
-  document.getElementById('inquiry').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' })
-  setTimeout(() => $('#f-name').focus({ preventScroll: true }), REDUCED ? 0 : 700)
-}
-
-const pageParams = new URLSearchParams(location.search)
-const utm = Object.fromEntries([...pageParams].filter(([k]) => k.startsWith('utm_')))
-// When embedded in a GHL page, the embed passes the real page URL as ghl_page
-const sourcePage = pageParams.get('ghl_page') || location.href
-
-/* Flat fields for GHL: Inbound Webhook mapping works best with top-level keys */
-function ghlFields(inq) {
-  const [first, ...rest] = inq.contact.name.trim().split(/\s+/)
-  const pkg = inq.scope.package
-  const tags = [
-    'sb-inquiry',
-    pkg && `sb-pkg-${pkg}`,
-    inq.need && `sb-sys-${inq.need.system.toLowerCase()}`,
-    inq.scope.customProposal && 'sb-custom',
-    inq.scope.projects.length && 'sb-project',
-    inq.scope.performanceInterest && 'sb-performance',
-  ].filter(Boolean)
-  return {
-    first_name: first || '',
-    last_name: rest.join(' '),
-    full_name: inq.contact.name,
-    email: inq.contact.email,
-    phone: inq.contact.phone,
-    company_name: inq.contact.business,
-    tags: tags.join(','),
-    sb_interest: inq.scope.interest,
-    sb_package: pkg ? pkgById(pkg).name : '',
-    sb_services: inq.scope.services.join(', '),
-    sb_projects: inq.scope.projects.join(', '),
-    sb_system: inq.need ? system(inq.need.system).name : '',
-    sb_need: inq.need ? inq.need.text : '',
-    sb_custom_proposal: inq.scope.customProposal ? 'yes' : 'no',
-    sb_performance: inq.scope.performanceInterest ? 'yes' : 'no',
-    sb_message: inq.message,
-    sb_source_page: inq.source.page,
-    utm_source: utm.utm_source || '',
-    utm_medium: utm.utm_medium || '',
-    utm_campaign: utm.utm_campaign || '',
-    utm_content: utm.utm_content || '',
-  }
-}
-
-/* POST to the webhook. If the browser blocks a JSON request (CORS), fall back to a
-   simple form-encoded POST, which needs no CORS approval from the receiving server. */
-async function sendInquiry(url, inq) {
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(inq),
-    })
-    if (!res.ok) throw new Error('status ' + res.status)
-    return true
-  } catch (err) {
-    if (!(err instanceof TypeError)) throw err
-    const flat = Object.fromEntries(
-      Object.entries(inq).filter(([, v]) => v === null || typeof v !== 'object'),
-    )
-    await fetch(url, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: new URLSearchParams({ ...flat, payload: JSON.stringify(inq) }),
-    })
-    return true
-  }
-}
-$('#inquiry-form').addEventListener('submit', async (e) => {
-  e.preventDefault()
-  const form = e.currentTarget
-  const msg = $('#form-msg')
-  const data = Object.fromEntries(new FormData(form))
-  if (!data.name || (!data.phone && !data.email)) {
-    msg.className = 'form-msg err'
-    msg.textContent = 'Add your name and a phone number or email so we can reach you.'
-    return
-  }
-  const r = scope.services.size ? recommend([...scope.services]) : null
-  // system-based.inquiry.v1: one record a CRM webhook or the System-Based OS can ingest as-is
-  const inquiry = {
-    schema: 'system-based.inquiry.v1',
-    catalogVersion: VERSION,
-    submittedAt: new Date().toISOString(),
-    contact: {
-      name: data.name,
-      business: data.business || '',
-      phone: data.phone || '',
-      email: data.email || '',
-    },
-    need:
-      scope.need !== null ? { text: NEEDS[scope.need].q, system: NEEDS[scope.need].system } : null,
-    scope: {
-      interest: data.interest,
-      package: scope.package,
-      services: [...scope.services],
-      projects: r ? r.projects : [],
-      customProposal: r ? r.custom : data.interest === 'Custom proposal',
-      performanceInterest: !!data.performance,
-    },
-    message: data.message || '',
-    source: { page: sourcePage, referrer: document.referrer, utm },
-  }
-  Object.assign(inquiry, ghlFields(inquiry))
-  msg.className = 'form-msg'
-  const done = () => {
-    // Conversion pixels: on the page itself (GHL drop-in), or the host page (iframe embed)
-    if (window.parent !== window)
-      window.parent.postMessage(
-        { type: 'sb:inquiry', package: inquiry.sb_package, tags: inquiry.tags },
-        '*',
-      )
-    else {
-      window.fbq?.('track', 'Lead')
-      window.gtag?.('event', 'generate_lead')
-    }
-    form.innerHTML = `<div class="full sh-block"><h3 class="display" style="font-size:30px">Scope received.</h3>
-      <p class="lede">Thanks, ${esc(data.name)}. We’ll review it and reach out within one business day.</p>
-      ${
-        CONFIG.BOOKING_URL
-          ? CONFIG.BOOKING_EMBED
-            ? `<p class="lede">Pick a time for your fit call now:</p><iframe class="booking" src="${esc(CONFIG.BOOKING_URL)}" title="Book your fit call" loading="lazy"></iframe>`
-            : `<a class="btn primary" href="${esc(CONFIG.BOOKING_URL)}" target="_blank" rel="noopener" style="justify-self:start">Pick a time now ↗</a>`
-          : ''
-      }</div>`
-  }
-  if (CONFIG.FORM_ENDPOINT) {
-    msg.textContent = 'Sending…'
-    try {
-      await sendInquiry(CONFIG.FORM_ENDPOINT, inquiry)
-      done()
-    } catch {
-      msg.className = 'form-msg err'
-      msg.textContent = 'That didn’t send. Please try again in a moment.'
-    }
-  } else if (CONFIG.CONTACT_EMAIL) {
-    location.href = `mailto:${CONFIG.CONTACT_EMAIL}?subject=${encodeURIComponent('Inquiry: ' + data.interest)}&body=${encodeURIComponent(JSON.stringify(inquiry, null, 2))}`
-    msg.textContent = `Your email app should open now. If it doesn’t, email ${CONFIG.CONTACT_EMAIL}.`
-  } else {
-    msg.className = 'form-msg err'
-    msg.textContent = 'The inquiry form isn’t connected yet. Add a form endpoint in config.js.'
-  }
+onScope(() => {
+  renderPlans()
+  renderComposer()
+  renderScopeBar()
+  renderExplorer($('#ex-panel details[open]')?.dataset.svc || '')
 })
+renderComposer()
+renderScopeBar()
 
 /* ================================================================== */
-/* Pop-up sheets                                                       */
+/* Pop-up sheets: package details, performance pricing, work           */
 /* ================================================================== */
 const sheet = $('#sheet')
 const panel = $('.sheet-panel', sheet)
 const body = $('#sheet-body')
-let viewer = null
 let lastFocus = null
 let closeTimer = 0
-
-function openSheet(html, ev, after) {
+function openSheet(html, ev) {
   clearTimeout(closeTimer)
   const wasOpen = sheet.classList.contains('open')
   lastFocus = wasOpen ? lastFocus : document.activeElement
@@ -861,7 +580,6 @@ function openSheet(html, ev, after) {
   }
   requestAnimationFrame(() => {
     sheet.classList.add('open')
-    after?.()
     $('.sheet-close', sheet).focus({ preventScroll: true })
   })
 }
@@ -871,7 +589,6 @@ function closeSheet() {
   sheet.classList.remove('open')
   sheet.setAttribute('aria-hidden', 'true')
   document.body.classList.remove('locked')
-  viewer?.hide()
   closeTimer = setTimeout(() => (body.innerHTML = ''), 500)
   lastFocus?.focus?.({ preventScroll: true })
 }
@@ -884,84 +601,59 @@ addEventListener('keydown', (e) => {
       (x) => !x.disabled && x.offsetParent !== null,
     )
     if (!f.length) return
-    const first = f[0]
-    const last = f.at(-1)
-    if (e.shiftKey && document.activeElement === first) {
-      last.focus()
+    if (e.shiftKey && document.activeElement === f[0]) {
+      f.at(-1).focus()
       e.preventDefault()
-    } else if (!e.shiftKey && document.activeElement === last) {
-      first.focus()
+    } else if (!e.shiftKey && document.activeElement === f.at(-1)) {
+      f[0].focus()
       e.preventDefault()
     }
   }
 })
-const show3D = (spec) => {
-  const host = $('.sh-visual', body)
-  if (!GL || !host) return
-  viewer ??= safe(createViewer)
-  viewer?.show(spec, host)
-}
-
-function openSystem3D(code, ev) {
-  const s = system(code)
-  openSheet(
-    `<div class="sh-split">
-      <div class="sh-visual"><div class="vis-label eyebrow">System ${s.n} · ${s.code}${s.code === 'CR' ? ' · <span class="dot"></span> start here' : ''}</div><span class="ghost chrome">${s.n}</span></div>
-      <div class="sh-copy">
-        <div class="sh-block"><div class="eyebrow">System ${s.n}</div><h2 class="display" id="sheet-title">${esc(s.name)}</h2><p class="lede">${esc(s.scope)}.</p></div>
-        <div class="sh-block"><h4>What changes</h4><p>${esc(s.outcome)}</p></div>
-        <div class="sh-block"><h4>Services</h4><ul class="ticks">${servicesOf(s.code)
-          .map((v) => `<li><b class="code">${v.code}</b>&nbsp;${esc(v.name)}</li>`)
-          .join('')}</ul></div>
-        <div class="sh-ctas"><button class="btn primary" data-book data-interest="Not sure yet">Talk about ${esc(s.name)}</button><button class="btn" data-close data-goto="packages">See packages</button></div>
-      </div>
-    </div>`,
-    ev,
-    () => show3D({ letter: s.code }),
-  )
-}
 
 function openPackage(id, ev) {
   const p = pkgById(id)
-  const sys = pkgSystems(p)
+  track('sb_package_viewed', { package: id })
   openSheet(
-    `<div class="sh-split">
-      <div class="sh-visual"><div class="vis-label eyebrow">${esc(p.name)} · ${sys.map((s) => s.code).join(' + ')}</div></div>
-      <div class="sh-copy">
-        <div class="sh-block"><div class="eyebrow">Package · was ${esc(p.was)}</div><h2 class="display" id="sheet-title">${esc(p.name)}</h2><p class="lede">${esc(p.outcome)}.</p></div>
-        <div class="fee-rows">
-          <div class="fee"><span>Implementation</span><strong>${priceHTML(p.implementation)}</strong><em>one-time</em></div>
-          <div class="fee"><span>Management</span><strong>${priceHTML(p.management)}</strong><em>per month</em></div>
-          <div class="fee"><span>Term</span><strong>${priceHTML(p.term, (v) => v)}</strong></div>
-        </div>
-        ${sys
-          .map(
-            (s) =>
-              `<div class="sh-block"><h4>${s.n} ${esc(s.name)}</h4><ul class="ticks">${p.services
-                .filter((c) => service(c).system === s.code)
-                .map((c) => `<li><b class="code">${c}</b>&nbsp;${esc(service(c).name)}</li>`)
-                .join('')}</ul></div>`,
-          )
-          .join('')}
-        <div class="sh-block"><h4>Available add-ons</h4><div class="syschips">${p.addOns.map((c) => `<span class="chip sm"><b>${c}</b>${esc(service(c).name)}</span>`).join('')}</div></div>
-        <div class="sh-block"><h4>Performance option</h4><p>${p.performance ? 'Available. ' + esc(PERFORMANCE.summary) : 'Not on Capture. Performance pricing needs marketing run by us, so it starts at Pipeline.'}</p></div>
-        <div class="sh-ctas"><button class="btn primary" data-book data-interest="${esc(p.name)} package" data-pkg="${p.id}">Start with ${esc(p.name)}</button>${p.performance ? '<button class="btn" data-performance>Performance rules</button>' : ''}</div>
+    `<div class="sh-copy" style="max-width:980px;margin:0 auto">
+      <div class="sh-block"><div class="eyebrow">Package</div><h2 class="display" id="sheet-title">${esc(p.name)}</h2><p class="lede">${esc(PACKAGE_FIT[p.id])}</p></div>
+      <div class="fee-rows">
+        <div class="fee"><span>Implementation</span><strong>${priceHTML(p.implementation)}</strong><em>one-time</em></div>
+        <div class="fee"><span>Management</span><strong>${priceHTML(p.management)}</strong><em>per month</em></div>
+        <div class="fee"><span>Term</span><strong>${priceHTML(p.term, (v) => v)}</strong></div>
       </div>
+      <div class="pkg-groups">${pkgSystems(p)
+        .map(
+          (s) =>
+            `<div class="sh-block"><h4>${esc(s.name)}</h4><ul class="ticks">${p.services
+              .filter((c) => service(c).system === s.code)
+              .map(
+                (c) =>
+                  `<li><span><strong>${esc(service(c).name)}</strong><em>${esc(service(c).deliverables)}</em></span></li>`,
+              )
+              .join('')}</ul></div>`,
+        )
+        .join('')}</div>
+      <div class="sh-block"><h4>Can be added</h4><div class="syschips">${p.addOns.map((c) => `<span class="chip sm">${esc(service(c).name)}</span>`).join('')}</div></div>
+      <div class="sh-ctas"><button type="button" class="btn primary" data-accept="${p.id}">Start with ${esc(p.name)}</button>${p.performance ? '<button type="button" class="btn" data-performance>Performance pricing</button>' : ''}</div>
     </div>`,
     ev,
-    () => show3D({ stack: sys.map((s) => s.code) }),
   )
 }
 
 function openPerformance(ev) {
+  const showTerms = PERFORMANCE.approved || CONFIG.SHOW_PROPOSED
   openSheet(
     `<div class="sh-copy" style="max-width:900px;margin:0 auto">
-      <div class="sh-block"><div class="eyebrow">Performance pricing${PERFORMANCE.approved ? '' : ' · <span class="proposed">Proposed terms</span>'}</div>
-        <h2 class="display" id="sheet-title">Pay on results.</h2><p class="lede">${esc(PERFORMANCE.summary)}</p></div>
-      <div class="rules">${PERFORMANCE.rules
-        .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
-        .join('')}</div>
-      <div class="sh-ctas"><button class="btn primary" data-book data-interest="Pipeline package" data-perf="1">Ask about performance pricing</button></div>
+      <div class="sh-block"><div class="eyebrow">Performance pricing${PERFORMANCE.approved ? '' : ' · <span class="proposed">Under review</span>'}</div>
+        <h2 class="display" id="sheet-title">Pay on results.</h2>
+        <p class="lede">${
+          showTerms
+            ? esc(PERFORMANCE.summary)
+            : 'For some marketing engagements, part of the fee can be tied to results instead of a flat monthly fee. It needs marketing run by us and tracking we can verify. Exact terms are confirmed during scoping.'
+        }</p></div>
+      ${showTerms ? `<div class="rules">${PERFORMANCE.rules.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</div>` : ''}
+      <div class="sh-ctas"><button type="button" class="btn primary" data-book data-from="performance" data-perf="1">Ask about performance pricing</button></div>
     </div>`,
     ev,
   )
@@ -976,32 +668,25 @@ let workOpen = null
 function openWork(i, ev) {
   const w = published[i]
   workOpen = w
-  const links = w.links.filter((l) => l.url)
-  const caseBlocks = [
+  const links = w.links.map((l) => ({ ...l, url: safeUrl(l.url) })).filter((l) => l.url)
+  const blocks = [
     w.problem && `<div class="sh-block"><h4>The problem</h4><p>${esc(w.problem)}</p></div>`,
     w.solution?.length &&
-      `<div class="sh-block"><h4>What we installed</h4><div class="syschips">${w.solution.map((c) => `<span class="chip sm"><b>${c}</b>${esc(service(c).name)}</span>`).join('')}</div></div>`,
+      `<div class="sh-block"><h4>Services used</h4><div class="syschips">${w.solution.map((c) => `<span class="chip sm">${esc(service(c).name)}</span>`).join('')}</div></div>`,
     w.technology?.length &&
       `<div class="sh-block"><h4>Technology</h4><div class="syschips">${w.technology.map((t) => `<span class="chip sm">${esc(t)}</span>`).join('')}</div></div>`,
     w.process?.length &&
       `<div class="sh-block"><h4>Process</h4><ol class="mini-steps">${w.process.map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>`,
-    isCase(w) &&
-      `<div class="sh-block"><h4>Results</h4>${
-        w.results?.length
-          ? `<dl class="fields">${w.results.map((r) => `<div><dt>${esc(r.metric)}</dt><dd>${esc(r.value)} <span class="muted">· ${esc(r.period)} · ${esc(r.source)}</span></dd></div>`).join('')}</dl>`
-          : '<p class="muted">Results are published once they’re verified and the client has approved them.</p>'
-      }</div>`,
+    w.results?.length
+      ? `<div class="sh-block"><h4>Results</h4><dl class="fields">${w.results.map((r) => `<div><dt>${esc(r.metric)}</dt><dd>${esc(r.value)} <span class="muted">· ${esc(r.period)} · ${esc(r.source)}</span></dd></div>`).join('')}</dl></div>`
+      : w.observed && `<div class="sh-block"><h4>What changed</h4><p>${esc(w.observed)}</p></div>`,
   ]
     .filter(Boolean)
     .join('')
   openSheet(
     `<div class="sh-work">
-      <div class="gallery" id="gallery">${w.media[0] ? workMediaHtml(w.media[0]) : `<div class="work-media" style="height:100%"><div class="placeholder"><span class="chrome">${esc(w.systems[0] || 'SB')}</span></div></div>`}</div>
-      ${
-        w.media.length > 1
-          ? `<div class="thumbs">${w.media.map((m, j) => `<button data-media="${j}" aria-current="${j === 0}" aria-label="Show item ${j + 1}"><img src="${m.poster || m.img}" alt="" /></button>`).join('')}</div>`
-          : ''
-      }
+      <div class="gallery" id="gallery">${w.media[0] ? workMediaHtml(w.media[0]) : `<div class="work-media" style="height:100%"><div class="placeholder"><span class="ph-glyph">${monogram(80)}</span></div></div>`}</div>
+      ${w.media.length > 1 ? `<div class="thumbs">${w.media.map((m, j) => `<button type="button" data-media="${j}" aria-current="${j === 0}" aria-label="Show item ${j + 1}"><img src="${m.poster || m.img}" alt="" /></button>`).join('')}</div>` : ''}
       <div class="sh-copy">
         <div class="sh-block full">
           <div class="work-meta"><span class="pill ${w.status}">${STATUS[w.status]}</span><span>${esc(TYPE_LABEL[w.type] || '')}</span><span>${esc(w.client)}</span></div>
@@ -1009,13 +694,12 @@ function openWork(i, ev) {
           <p class="lede">${esc(w.about)}</p>
           <div class="sh-ctas" style="margin-top:10px">
             ${links.map((l, j) => `<a class="btn ${j ? '' : 'primary'}" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`).join('')}
-            ${w.embed ? `<button class="btn" data-embed="${esc(w.embed)}">Preview live here</button>` : ''}
-            ${w.status === 'soon' ? `<button class="btn primary" data-book data-interest="Not sure yet">Get early access</button>` : ''}
+            ${w.status === 'soon' ? '<button type="button" class="btn primary" data-community-invite="work">Follow the build</button>' : ''}
           </div>
         </div>
-        <div>${caseBlocks}</div>
+        <div>${blocks}</div>
         <div>${w.built?.length ? `<div class="sh-block"><h4>What we built</h4><ul class="ticks" style="grid-template-columns:1fr">${w.built.map((b) => `<li>${esc(b)}</li>`).join('')}</ul></div>` : ''}
-          ${w.systems.length ? `<div class="sh-block" style="margin-top:14px"><h4>Systems</h4><div class="syschips">${w.systems.map((k) => `<button class="chip" data-explore="${k}"><b>${system(k).n}</b>${esc(system(k).name)}</button>`).join('')}</div></div>` : ''}</div>
+          ${w.systems.length ? `<div class="sh-block" style="margin-top:14px"><h4>Systems</h4><div class="syschips">${w.systems.map((k) => `<button type="button" class="chip" data-explore="${k}">${esc(system(k).name)}</button>`).join('')}</div></div>` : ''}</div>
       </div>
     </div>`,
     ev,
@@ -1027,59 +711,51 @@ body.addEventListener('click', (e) => {
     $('#gallery').innerHTML = workMediaHtml(workOpen.media[+t.dataset.media])
     $$('[data-media]', body).forEach((b) => b.setAttribute('aria-current', b === t))
   }
-  const emb = e.target.closest('[data-embed]')
-  if (emb)
-    $('#gallery').innerHTML =
-      `<iframe src="${esc(emb.dataset.embed)}" title="Live preview" loading="lazy"></iframe>`
 })
 
-/* ---------- Global clicks ---------- */
+/* ---------- Shared clicks ---------- */
 document.addEventListener('click', (e) => {
-  const book = e.target.closest('[data-book]')
+  const t = e.target
+  if (t.closest('[data-hero-primary]')) track('sb_hero_primary_click')
+  const book = t.closest('[data-book]')
   if (book && !book.disabled) {
     e.preventDefault()
-    if (book.dataset.pkg) scope.package = book.dataset.pkg
     if (book.dataset.perf) $('#f-perf').checked = true
-    return goInquiry(book.dataset.interest)
+    setMenu(false)
+    closeSheet()
+    return inquiry.go(book.dataset.from)
   }
-  const ex = e.target.closest('[data-explore]')
+  const accept = t.closest('[data-accept]')
+  if (accept) {
+    const id = accept.dataset.accept
+    setScope({ acceptedPackageId: id })
+    track('sb_package_selected', { package: id })
+    closeSheet()
+    return inquiry.go('package')
+  }
+  const proj = t.closest('[data-project]')
+  if (proj) {
+    const set = new Set(getScope().selectedServiceIds)
+    set.add(proj.dataset.project)
+    setScope({ selectedServiceIds: [...set], customScope: true })
+    track('sb_service_added', { service: proj.dataset.project })
+    return inquiry.go('project')
+  }
+  const ex = t.closest('[data-explore]')
   if (ex) {
     closeSheet()
     return explore(ex.dataset.explore)
   }
-  const s3 = e.target.closest('[data-system3d]')
-  if (s3) return openSystem3D(s3.dataset.system3d, e)
-  const p = e.target.closest('[data-plan]')
+  if (t.closest('[data-view-composer]')) return setView('composer')
+  const p = t.closest('[data-plan]')
   if (p) return openPackage(p.dataset.plan, e)
-  if (e.target.closest('[data-performance]')) return openPerformance(e)
-  const w = e.target.closest('[data-work]')
+  if (t.closest('[data-performance]')) return openPerformance(e)
+  const w = t.closest('[data-work]')
   if (w) return openWork(+w.dataset.work, e)
-  const add = e.target.closest('[data-add]')
+  if (t.closest('#comp-clear')) return setScope({ selectedServiceIds: [] })
+  const add = t.closest('[data-add]')
   if (add) {
-    const c = add.dataset.add
-    if (scope.services.has(c)) scope.services.delete(c)
-    else scope.services.add(c)
-    const open = add.closest('details')?.querySelector('summary .code')?.textContent
-    syncSelections()
-    if (open)
-      $$('#ex-panel details')
-        .find((d) => d.querySelector('.code').textContent === open)
-        ?.setAttribute('open', '')
-    return
+    const on = toggleService(add.dataset.add)
+    if (on) track('sb_service_added', { service: add.dataset.add })
   }
-  const cfg = e.target.closest('[data-config-pkg]')
-  if (cfg) {
-    setView('packages')
-    const card = document.getElementById('pkg-' + cfg.dataset.configPkg)
-    document.getElementById('packages').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' })
-    card.classList.remove('focus')
-    void card.offsetWidth
-    card.classList.add('focus')
-    return
-  }
-  const go = e.target.closest('[data-goto]')
-  if (go)
-    document
-      .getElementById(go.dataset.goto)
-      ?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' })
 })

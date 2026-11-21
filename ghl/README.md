@@ -1,130 +1,109 @@
 # System-Based website on GoHighLevel
 
-GHL runs the domain, the page, tracking, the CRM, workflows, the calendar and the community. The website's files live on a free static host, and the GHL page shows them full-screen through one Custom Code element.
+There are two ways to deploy:
 
-Why not paste the whole site into GHL? Its 3D engine and app code are over 700 KB, and GHL doesn't document a size limit for custom code. One small embed is the reliable route.
+| Path | What goes into GHL | Use it when |
+| --- | --- | --- |
+| **A. Drop-in (current)** | One Custom JS/HTML element containing `ghl/drop/custom-code.html`. Assets load from jsDelivr, pinned to one commit of this public repo | The site lives on a GHL page (systembased.net) |
+| B. Static host + embed | `npm run build:ghl -- --url …` writes an iframe embed for a site hosted elsewhere | You host the files yourself (Netlify, Cloudflare Pages) |
 
-```
-Visitor ──► systembased.net (GHL page) ──► full-screen embed of the site
-                                             │
-              inquiry form ──────────────────┴──► GHL Inbound Webhook workflow
-                                                   ├─ create/update contact + custom fields
-                                                   ├─ tags, opportunity in "System-Based Sales"
-                                                   ├─ text the lead back, alert you
-                                                   └─ calendar booking moves the stage
-```
+The rest of this guide covers path A.
 
-## 1. Build the GHL export
+## 1. Release process (path A)
+
+Run every step from the website branch, in this order:
 
 ```bash
 npm install
-npm run build:ghl -- --url https://YOUR-HOST/
+npm run test:content          # catalog + scenario guardrails
+npm run test:e2e              # browser acceptance tests, desktop + phone (needs Playwright)
+npm run build:ghl-dropin      # builds ghl/drop/assets + a draft custom-code.html
+git add ghl/drop && git commit -m "Build GHL drop-in"
+git push
+npm run build:ghl-dropin -- --snippet-only --cdn "https://cdn.jsdelivr.net/gh/systembasedhq-bit/3d@$(git rev-parse HEAD)/ghl/drop/"
+git add ghl/drop/custom-code.html && git commit -m "Pin GHL drop-in to $(git rev-parse --short HEAD~0)" && git push
 ```
 
-Run it again with the GHL links once you have them from steps 4 to 6:
+The second build points every CSS and JS URL at the exact commit that holds those files. Asset names are content-hashed, so an old snippet never loads new code by accident, and a new snippet never loads stale code.
 
-```bash
-npm run build:ghl -- --url https://YOUR-HOST/ --webhook "https://services.leadconnectorhq.com/hooks/…" --calendar "https://…/widget/booking/…" --community "https://…"
-```
+**Never** edit the minified files in `ghl/drop/assets` by hand.
 
-The build writes `ghl-export/`:
+## 2. Put it on the page
 
-| File | What to do with it |
-| --- | --- |
-| `site-files/` and `site-files.zip` | Upload to your static host (step 2) |
-| `custom-code.html` | Paste into the GHL page (step 3) |
-| `sample-inquiry.json` | Test payload for the webhook (step 4) |
+1. In GHL, open **Sites → Websites** and find the page published at `systembased.net`. Confirm it's the right one under **Settings → Domains**.
+2. Open its Custom JS/HTML element and **replace** its whole contents with `ghl/drop/custom-code.html`. Fill in the `window.SB_CONFIG` block at the top (step 3).
+3. Save, use **Preview**, then **Publish**.
 
-## 2. Host the site files (free)
+The block moves the site to the top of `<body>` once, even if GHL runs the code twice. It hides only GHL's own empty page wrapper and leaves chat widgets, pixels and tracking scripts alone.
 
-Pick one host:
+## 3. Settings (`window.SB_CONFIG`)
 
-- **Netlify Drop**: drag the `site-files` folder onto app.netlify.com/drop. You get a URL like `https://name.netlify.app/`.
-- **Cloudflare Pages**: Create project → Direct upload → upload `site-files.zip`.
-
-Check that `https://YOUR-HOST/site/` opens the website. Then re-run step 1 with that `--url`, so the embed points at the right place.
-
-## 3. Create the GHL page
-
-1. Go to **Sites → Websites** (or Funnels) and create a site "System-Based" with a **blank** Home page.
-2. Delete any default header, sections and footer.
-3. Add one full-width section, and inside it one **Custom JS/HTML (Code)** element.
-4. Paste the whole of `ghl-export/custom-code.html` into it, then save.
-5. In page settings, set the SEO title to `System-Based · Systems over luck.` and add the meta description and favicon.
-6. In **Settings → Domains**, connect `systembased.net` and make this page the homepage. Publish.
-
-The embed covers the full screen, passes UTM tags and the real page URL through to the site, and fires `fbq('track','Lead')` and `gtag('event','generate_lead')` on the GHL page when someone sends an inquiry. Put your Meta Pixel and Google tags in the GHL page's tracking code as usual.
-
-## 4. Inquiry → GHL workflow
-
-1. **Automation → Workflows → Create → Start from scratch.**
-2. **Trigger: Inbound Webhook.** Copy its URL. This is your `--webhook`. HighLevel lists Inbound Webhook as a premium trigger, so check your plan.
-3. Rebuild (step 1), re-upload (step 2), and send one test inquiry from the live site. Or send the sample:
-
-   ```bash
-   curl -X POST "YOUR_WEBHOOK_URL" -H "Content-Type: application/json" -d @ghl-export/sample-inquiry.json
-   ```
-
-4. In the trigger, click **Fetch sample requests** and select the test.
-
-How the site sends: it tries JSON first. If the browser blocks that request, it re-sends the same fields form-encoded, plus the full record as `payload`. Either way the top-level fields below arrive, so map those.
-
-### Custom fields to create first
-
-Create these under **Settings → Custom Fields**, as contact text fields:
-
-| Webhook key | Custom field | Example |
+| Key | Set it to | When blank |
 | --- | --- | --- |
-| `sb_interest` | SB Interest | Pipeline package |
-| `sb_package` | SB Package | Pipeline |
-| `sb_services` | SB Services | GR-01, CR-01 |
-| `sb_projects` | SB Projects | BB-01 |
-| `sb_system` | SB System | Growth |
-| `sb_need` | SB Need | I need more people calling in the first place |
-| `sb_custom_proposal` | SB Custom Proposal | yes / no |
-| `sb_performance` | SB Performance Interest | yes / no |
-| `sb_message` | SB Message | free text |
-| `sb_source_page` | SB Source Page | the page URL |
+| `FORM_ENDPOINT` | The relay URL (step 4), or a GHL Inbound Webhook URL | The form says sending isn’t switched on, and keeps what was typed |
+| `FORM_MODE` | `'relay'`, `'ghl'` or `'auto'` | `'auto'` detects GHL webhook URLs |
+| `BOOKING_URL` | GHL calendar permanent link | No calendar after an inquiry |
+| `COMMUNITY_URL` | The working join link for the System-Based Business Community | Visitors get an honest waitlist instead of a join button |
+| `CONTACT_EMAIL` | An inbox you read | Not shown |
+| `SHOW_PROPOSED` | Keep `false` until prices are approved in `src/catalog/catalog.js` | Unapproved prices read “Confirmed after scoping” |
 
-### Workflow actions, in order
+Only fill a value once it is real and tested. Never invent a link.
 
-1. **Create/Update Contact.** Map `first_name`, `last_name`, `email`, `phone` and `company_name` to the standard fields, and each `sb_*` key to its custom field. Map `utm_source`, `utm_medium` and `utm_campaign` to your attribution fields.
-2. **Add Tag `sb-inquiry`.** Every inquiry also carries a `tags` value, for example `sb-inquiry,sb-pkg-pipeline,sb-sys-gr,sb-performance`. Map it if your tag action accepts a mapped value. If not, add If/Else branches on `sb_package` and tag `sb-pkg-capture`, `sb-pkg-pipeline` or `sb-pkg-command`.
-3. **Create/Update Opportunity.** Use the pipeline **System-Based Sales**, stage **New inquiry**, named "{company} – {SB Package}", with source "Website".
-4. **Send SMS to the contact.** This is your own Client Response System at work: "Hey {first name}, it's System-Based. Got your scope for {SB Package}. Grab a time for your fit call: {calendar link}"
-5. **Internal notification** to you, with every `sb_*` field.
-6. **Wait 1 day → If/Else: appointment booked?** If not, send a follow-up SMS with the calendar link.
+## 4. Form relay (recommended)
 
-Pipeline **System-Based Sales** stages: New inquiry → Fit call booked → Proposal sent → Won → Lost.
+A webhook URL embedded in a public page can be read and spammed by anyone. Browsers also can’t confirm that GHL received the request. `relay/worker.js` (a Cloudflare Worker, free tier) fixes both:
 
-## 5. Calendar
+- the real GHL webhook URL stays secret
+- it accepts only `systembased.net`
+- it validates fields and size, and drops bot submissions
+- it rate-limits each visitor
+- the same `sb_request_id` is never forwarded twice
+- it answers `{ ok: true }` only after GHL accepts the record
 
-Create a **Fit call** calendar (20 minutes) and copy its permanent booking link. That's your `--calendar`. After someone sends an inquiry, the site shows this calendar right below the form. To show a button instead, set `BOOKING_EMBED: false` in `src/site/config.js`.
+The setup steps are at the top of `relay/worker.js`. Put the worker URL in `FORM_ENDPOINT`.
 
-Add a second workflow with the trigger **Appointment status: booked** on that calendar, and move the opportunity to **Fit call booked**.
+**Without the relay**, with `FORM_ENDPOINT` set to a GHL webhook URL, the site sends one form-encoded POST. The browser can’t read the response, so the success message says the inquiry was sent but couldn’t be confirmed. It isn’t marked as received.
 
-## 6. Pressure Built
+## 5. Workflows
 
-Create the community in **GHL Communities** and use its join link as `--community`. Until then, the button reads "Get notified when it opens". People who click it arrive in the same workflow with the interest "Pressure Built community". Branch on that to tag them `pressure-built-waitlist`.
+Use two workflows, so community sign-ups never get sales follow-up.
 
-## 7. Chat widget (optional)
+### a) Sales inquiry
 
-To add the GHL chat widget, paste its embed code into the same GHL page, either in the Custom Code element under the embed or in the page tracking code. It sits on top of the site.
+**Trigger:** Inbound Webhook. Filter: `sb_intake_source` is `website_inquiry`.
 
-## Launch checklist
+1. **Create/Update Contact.** Match on email, then phone, according to your duplicate policy. Map `first_name`, `last_name`, `email`, `phone` and `company_name`.
+2. **Custom fields.** Create these under Settings → Custom Fields, then map each one:
+   - `sb_problem_id`, `sb_need`, `sb_scenario_id`
+   - `sb_recommended_package`, `sb_accepted_package`, `sb_package`, `sb_interest`
+   - `sb_services`, `sb_projects`, `sb_custom_proposal`, `sb_performance`
+   - `sb_next_step`, `sb_message`, `sb_marketing_consent`
+   - `sb_community_interest`, `sb_community_entry_point`
+   - `sb_source_page`, `sb_request_id`
+   - `utm_source`, `utm_medium`, `utm_campaign`
+3. **Tags.** `tags` holds values such as `sb-inquiry,sb-pkg-capture,sb-problem-response`. If your tag action can't take a mapped value, branch on `sb_problem_id` and `sb_accepted_package` instead.
+4. **Opportunity.** Use **Create/Update Opportunity** (not Create) in pipeline *System-Based Sales*, stage *New inquiry*. This keeps repeat submissions from making duplicate opportunities.
+5. **Internal notification** to the owner. Include the name, business, `sb_need`, the accepted or recommended package, `sb_services`, `sb_next_step`, `sb_message` and the UTM source.
+6. **Lead confirmation.** Send email by default. Send SMS **only** where you have consent, which `sb_marketing_consent` alone does not cover for promotional texts. Check the rules that apply to you.
+7. A second workflow on **Appointment booked** (the fit-call calendar) moves the opportunity to *Fit call booked*.
 
-- [ ] `https://YOUR-HOST/site/` loads, and the intro plays and skips
-- [ ] systembased.net shows the site full-screen on desktop and phone
-- [ ] A test inquiry creates the contact, custom fields, tags and opportunity
-- [ ] The lead text-back and your internal notification arrive
-- [ ] The calendar shows after sending, and a booking moves the opportunity
-- [ ] The Meta Pixel `Lead` event fires on submit, checked with Pixel Helper
-- [ ] `SHOW_PROPOSED: false` in `src/site/config.js`, unless all prices are approved
+### b) Community waitlist
 
-## Updating the site later
+**Trigger:** Inbound Webhook, or a separate relay target via `GHL_COMMUNITY_WEBHOOK_URL`. Filter: `sb_intake_source` is `community_waitlist`.
 
-Edit, then run `npm run build:ghl -- …` with the same flags, and re-upload `site-files`. The GHL page and workflows don't change.
+Create/Update the contact by email, add the tags `sb-community-waitlist` and `sb-community-interest`, and set `business_type`. **Do not** add these contacts to the sales pipeline or sales sequences. Email them when the community opens. Add `sb-community-member` only once someone has actually joined.
 
-## Limits of this setup
+## 6. Verification after every release
 
-Search engines index the GHL page's title and description, not the text inside the embedded site. If organic search becomes a priority, point the domain at the static host directly. GHL still does everything else through the same webhook, calendar and community links.
+1. Open `https://systembased.net` in a private window, so no cached copy is used.
+2. In DevTools → Network, the CSS and JS should load from `cdn.jsdelivr.net/gh/systembasedhq-bit/3d@<the new commit>/…`. Check the hash matches `custom-code.html`.
+3. Check the nav reads **Community** and there are no system codes in the walkthrough.
+4. Pick a bottleneck, then scroll the walkthrough down and back up. The phone, the customer record and the owner view should stay in step.
+5. Send a test inquiry. Check in GHL that the contact, custom fields, tags, single opportunity and owner notification all arrive. Then send it again and confirm no second opportunity appears.
+6. Join the waitlist with a test email. Check it's tagged as community, with no opportunity created.
+7. Repeat on a real phone, in both iOS Safari and Android Chrome.
+
+## Known limits
+
+- Search engines index the GHL page's title and description. The site body is rendered by JavaScript, so don't count on it being indexed until you've checked a rendered crawl.
+- The walkthrough's businesses, people, times and numbers are illustrative and labelled as such. Client work is only published with approval (`src/site/work.js`).

@@ -21,15 +21,20 @@ export const CONFIG = {
   // (first_name, email, phone, tags, sb_package ...). See ghl/README.md for the mapping.
   // When empty, the form falls back to an email to CONTACT_EMAIL.
   FORM_ENDPOINT: pick('FORM_ENDPOINT', import.meta.env.VITE_SB_FORM_ENDPOINT, ''),
+  // 'relay' = the endpoint is relay/worker.js (confirmed delivery, recommended)
+  // 'ghl'   = the endpoint is a GHL Inbound Webhook URL (sent, but unconfirmed in the browser)
+  // 'auto'  = decide from the URL
+  FORM_MODE: pick('FORM_MODE', null, 'auto'),
   CONTACT_EMAIL: pick('CONTACT_EMAIL', null, ''),
 
-  // Pressure Built link: your GHL Communities group (or Skool, Discord...). Empty = "Opening soon".
+  // System-Based Business Community join link (GHL Communities, Skool...). Only set it once
+  // the link really works. Empty = the site offers an honest waitlist instead.
   COMMUNITY_URL: pick('COMMUNITY_URL', import.meta.env.VITE_SB_COMMUNITY_URL, ''),
 
   // Prices, terms and limits in src/catalog/catalog.js are proposals until approved.
-  // true  = show proposed values with a "Proposed" tag (for review)
-  // false = show "Confirmed on your fit call" for anything not approved (use for launch)
-  SHOW_PROPOSED: pick('SHOW_PROPOSED', null, true),
+  // true  = show proposed values with a "Proposed" tag (internal review only)
+  // false = anything not approved reads "Confirmed after scoping" (public default)
+  SHOW_PROPOSED: pick('SHOW_PROPOSED', null, false),
 
   // The 3D mockup tool link in Work. Empty hides the link (the GHL drop-in has no tool).
   MOCKUP_TOOL_URL: pick('MOCKUP_TOOL_URL', import.meta.env.VITE_SB_MOCKUP_URL, '../index.html'),

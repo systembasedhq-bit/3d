@@ -47,6 +47,8 @@ const styles = tags.filter((t) => t.includes('stylesheet')).map(abs)
 const preloads = tags.filter((t) => t.includes('modulepreload')).map(abs)
 const module = tags.filter((t) => t.startsWith('<script')).map(abs)
 const markup = body.replace(/<script type="module"[\s\S]*?<\/script>/, '').trim()
+  // non-ASCII as entities, so the block survives any editor or page encoding
+  .replace(/[^\t\n\r\x20-\x7E]/g, (c) => `&#${c.codePointAt(0)};`)
 
 const snippet = `<!--
   SYSTEM-BASED WEBSITE for GoHighLevel
@@ -54,11 +56,15 @@ const snippet = `<!--
   Fill in the settings below whenever you have them; no rebuild needed.
 -->
 <script>
+  // Fill these in when each one is real and tested. Leave blank otherwise: the site
+  // then shows honest fallbacks (waitlist, "confirmed after scoping") instead of dead links.
   window.SB_CONFIG = {
-    FORM_ENDPOINT: '',   // GHL Inbound Webhook URL (Automation > Workflow > trigger: Inbound Webhook)
-    BOOKING_URL: '',     // GHL calendar booking link, shown after someone sends an inquiry
-    COMMUNITY_URL: '',   // Pressure Built link (GHL Communities). Empty = "Opening soon"
-    SHOW_PROPOSED: true, // false = unapproved prices read "Confirmed on your fit call"
+    FORM_ENDPOINT: '',   // relay URL (recommended, see relay/worker.js) or a GHL Inbound Webhook URL
+    FORM_MODE: 'auto',   // 'relay' | 'ghl' | 'auto' (decides from the URL)
+    BOOKING_URL: '',     // GHL calendar booking link, shown after an inquiry is sent
+    COMMUNITY_URL: '',   // System-Based Business Community join link. Blank = waitlist
+    CONTACT_EMAIL: '',   // shown if online sending isn't switched on yet
+    SHOW_PROPOSED: false, // keep false until the owner approves prices in the catalog
     MOCKUP_TOOL_URL: ''
   };
   // phones need a viewport tag; GHL pages normally have one, this adds it if not
@@ -76,8 +82,13 @@ ${markup}
 </div>
 <script>
   (function () {
-    // Take over the page: put the site directly in <body> and hide GHL's empty page wrapper
+    // Runs once even if GHL re-executes custom code: put the site directly in <body>
+    // and hide only GHL's own (now empty) page wrapper. Chat widgets, pixels and
+    // other scripts GHL adds to <body> are left untouched.
+    if (window.__sbMounted) return;
     var root = document.getElementById('sb-root');
+    if (!root) return;
+    window.__sbMounted = true;
     var wrap = root;
     while (wrap.parentElement && wrap.parentElement !== document.body) wrap = wrap.parentElement;
     document.body.insertBefore(root, document.body.firstChild);

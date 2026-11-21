@@ -8,6 +8,11 @@
  *   process     what happened, step by step
  *   results     VERIFIED outcomes only: [{ metric, value, period, source }]
  *   approved    true once the client has signed off on publishing their name and results
+ *   clientCase  true only for a paying client's project (shown as "Client case study")
+ *   observed    what changed, in words, when there are no verified numbers
+ *
+ * Status labels on the site: live = "Live project", demo = "Working demo",
+ * soon = "Concept / in progress". Never mark something live that isn't.
  *
  * To add a project:
  *   1. Put a screenshot (about 1600px wide, .jpg) in src/site/media/ and import it below.
@@ -64,7 +69,10 @@ export const WORK = [
       'Exported stills, the logo reveal and the website hero',
     ],
     results: [],
+    observed:
+      'One brand system now drives the website hero, social assets and the logo reveal, all from the same 3D scene.',
     approved: true,
+    clientCase: false,
     links: [],
     media: [
       { video: logoReveal, poster: avatar },
@@ -100,12 +108,15 @@ export const WORK = [
       'Add lighting, camera and export controls',
     ],
     results: [],
+    observed:
+      'A screen recording becomes a lit, moving 3D phone video in minutes instead of hours.',
     approved: true,
+    clientCase: false,
     links: [{ label: 'Open the tool', url: CONFIG.MOCKUP_TOOL_URL }],
     media: [{ img: mockupTool }],
   },
   {
-    published: true,
+    published: false, // retired: it shows the old lettered block diagram
     title: 'Services & pricing graphics',
     client: 'System-Based',
     type: 'brand',
@@ -203,9 +214,9 @@ export const WORK = [
 
 export const WORK_TYPES = [
   { id: 'all', label: 'All work' },
-  { id: 'case', label: 'Case studies' },
+  { id: 'case', label: 'Client case studies' },
   { id: 'site', label: 'Live sites' },
-  { id: 'demo', label: 'Live demos' },
+  { id: 'demo', label: 'Demos' },
   { id: 'brand', label: 'Brand' },
   { id: 'ai', label: 'AI & software' },
 ]
