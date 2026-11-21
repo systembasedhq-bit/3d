@@ -2,14 +2,18 @@
 
 There are two ways to deploy:
 
-| Path                     | What goes into GHL                                                                                                                     | Use it when                                             |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| **A. Drop-in (current)** | One Custom JS/HTML element containing `ghl/drop/custom-code.html`. Assets load from jsDelivr, pinned to one commit of this public repo | The site lives on a GHL page (systembased.net)          |
-| B. Static host + embed   | `npm run build:ghl -- --url …` writes an iframe embed for a site hosted elsewhere                                                      | You host the files yourself (Netlify, Cloudflare Pages) |
+| Path                     | What goes into GHL                                                                                                                                | Use it when                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **A. Drop-in (current)** | One Custom JS/HTML element containing `ghl/drop/custom-code.html`. Assets load from jsDelivr, pinned to one commit of the small `site-cdn` branch | The site lives on a GHL page (systembased.net)          |
+| B. Static host + embed   | `npm run build:ghl -- --url …` writes an iframe embed for a site hosted elsewhere                                                                 | You host the files yourself (Netlify, Cloudflare Pages) |
 
 The rest of this guide covers path A.
 
 ## 1. Release process (path A)
+
+jsDelivr will not serve a GitHub commit whose files total more than **50 MB**, and this
+branch is larger than that (the demo video and 3D models). So the built files are published
+on their own small branch, `site-cdn`, and the GHL code is pinned to a commit there.
 
 Run every step from the website branch, in this order:
 
@@ -18,13 +22,23 @@ npm install
 npm run test:content          # catalog + scenario guardrails
 npm run test:e2e              # browser acceptance tests, desktop + phone (needs Playwright)
 npm run build:ghl-dropin      # builds ghl/drop/assets + a draft custom-code.html
-git add ghl/drop && git commit -m "Build GHL drop-in"
-git push
-npm run build:ghl-dropin -- --snippet-only --cdn "https://cdn.jsdelivr.net/gh/systembasedhq-bit/3d@$(git rev-parse HEAD)/ghl/drop/"
-git add ghl/drop/custom-code.html && git commit -m "Pin GHL drop-in to $(git rev-parse --short HEAD~0)" && git push
+
+# publish the built files on the small CDN branch
+git worktree add ../sb-cdn site-cdn      # once; afterwards: (cd ../sb-cdn && git pull)
+cp ghl/drop/assets/* ../sb-cdn/assets/
+(cd ../sb-cdn && git add -A && git commit -m "Website CDN files" && git push)
+
+# pin the GHL code to that exact commit
+npm run build:ghl-dropin -- --snippet-only --cdn "https://cdn.jsdelivr.net/gh/systembasedhq-bit/3d@$(git -C ../sb-cdn rev-parse HEAD)/"
+git add -A && git commit -m "Pin GHL drop-in" && git push
 ```
 
-The second build points every CSS and JS URL at the exact commit that holds those files. Asset names are content-hashed, so an old snippet never loads new code by accident, and a new snippet never loads stale code.
+Asset names are content-hashed and the URL names one commit, so an old snippet never loads
+new code by accident, and a new snippet never loads stale code.
+
+**Before pasting into GHL**, open one of the CSS or JS URLs from `custom-code.html` in a
+browser. It must load (not say "Package size exceeded"). That first request also makes
+jsDelivr cache the files.
 
 **Never** edit the minified files in `ghl/drop/assets` by hand.
 
@@ -96,7 +110,7 @@ Create/Update the contact by email, add the tags `sb-community-waitlist` and `sb
 ## 6. Verification after every release
 
 1. Open `https://systembased.net` in a private window, so no cached copy is used.
-2. In DevTools → Network, the CSS and JS should load from `cdn.jsdelivr.net/gh/systembasedhq-bit/3d@<the new commit>/…`. Check the hash matches `custom-code.html`.
+2. In DevTools → Network, the CSS and JS should load from `cdn.jsdelivr.net/gh/systembasedhq-bit/3d@<the site-cdn commit>/assets/…`. Check the hash matches `custom-code.html`.
 3. Check the nav reads **Community** and there are no system codes in the walkthrough.
 4. Pick a bottleneck, then scroll the walkthrough down and back up. The phone, the customer record and the owner view should stay in step.
 5. Send a test inquiry. Check in GHL that the contact, custom fields, tags, single opportunity and owner notification all arrive. Then send it again and confirm no second opportunity appears.
