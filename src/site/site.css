@@ -6353,3 +6353,8 @@ html.film-open {
   border-color: var(--c-ink);
   color: #fff;
 }
+.fl-logo .lg-mask,
+.fp-side .lg-mask,
+.fsys-logo .lg-mask {
+  max-height: none;
+}
