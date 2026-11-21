@@ -3469,9 +3469,11 @@ button.chip.sm {
   backdrop-filter: blur(8px);
   padding: 16px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  overflow-wrap: break-word;
   font-size: 13.5px;
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.5);
   opacity: 0;
@@ -3486,6 +3488,10 @@ button.chip.sm {
 }
 .sc:empty {
   display: none;
+}
+.sc-head .pill {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .sc-head {
   display: flex;
@@ -3675,6 +3681,15 @@ button.chip.sm {
   }
   .sc-title {
     font-size: 12.5px;
+  }
+  .sc-head {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    letter-spacing: 0.08em;
+  }
+  .sc-head .pill {
+    font-size: 9.5px;
+    padding: 3px 7px;
   }
   .sc dl div {
     padding: 4px 0;
