@@ -357,6 +357,7 @@ for (const kind of ['desktop', 'phone']) {
       )
       const o = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
       if (o > 0) bad.push(`${w}px #${id} +${o}`)
+      if (o > 0 && process.env.DBG) console.log(await page.evaluate(() => { const W = innerWidth; return [...document.querySelectorAll('body *')].filter((el) => { const rc = el.getBoundingClientRect(); return rc.right > W + 0.5 && rc.width > 0 && !el.closest('.ex-tabs') }).slice(0, 12).map((el) => el.tagName + '#' + el.id + '.' + String(el.className).slice(0, 40) + ' r' + Math.round(el.getBoundingClientRect().right - W)).join(' | ') }))
     }
     await ctx.close()
   }
