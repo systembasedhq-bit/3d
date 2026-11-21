@@ -46,12 +46,16 @@ const tags = head.match(/<(link|script)\b[^>]*>(<\/script>)?/g) || []
 const styles = tags.filter((t) => t.includes('stylesheet')).map(abs)
 const preloads = tags.filter((t) => t.includes('modulepreload')).map(abs)
 const module = tags.filter((t) => t.startsWith('<script')).map(abs)
-const markup = body.replace(/<script type="module"[\s\S]*?<\/script>/, '').trim()
+const ver = (cdn.match(/@([0-9a-f]{7})/) || [])[1] || 'dev'
+const markup = body
+  .replace(/<script type="module"[\s\S]*?<\/script>/, '')
+  .replace(/<!--[\s\S]*?-->[ \t]*\n?/g, '') // no build comments in the pasted block
+  .trim()
   // non-ASCII as entities, so the block survives any editor or page encoding
   .replace(/[^\t\n\r\x20-\x7E]/g, (c) => `&#${c.codePointAt(0)};`)
 
 const snippet = `<!--
-  SYSTEM-BASED WEBSITE for GoHighLevel
+  SYSTEM-BASED WEBSITE for GoHighLevel - v2 (${ver})
   Paste this whole block into ONE "Custom JS/HTML" element on a blank GHL page.
   Fill in the settings below whenever you have them; no rebuild needed.
 -->
@@ -77,7 +81,7 @@ const snippet = `<!--
 </script>
 ${styles.join('\n')}
 ${preloads.join('\n')}
-<div id="sb-root" style="display:none">
+<div id="sb-root" data-sb-version="2-${ver}" style="display:none">
 ${markup}
 </div>
 <script>
@@ -86,6 +90,8 @@ ${markup}
     // and hide only GHL's own (now empty) page wrapper. Chat widgets, pixels and
     // other scripts GHL adds to <body> are left untouched.
     if (window.__sbMounted) return;
+    if (document.querySelectorAll('#sb-root').length > 1)
+      console.warn('System-Based: an older copy of the site code is also on this page. Delete it so only this block remains.');
     var root = document.getElementById('sb-root');
     if (!root) return;
     window.__sbMounted = true;

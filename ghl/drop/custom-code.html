@@ -1,5 +1,5 @@
 <!--
-  SYSTEM-BASED WEBSITE for GoHighLevel
+  SYSTEM-BASED WEBSITE for GoHighLevel - v2 (a0a457b)
   Paste this whole block into ONE "Custom JS/HTML" element on a blank GHL page.
   Fill in the settings below whenever you have them; no rebuild needed.
 -->
@@ -25,7 +25,7 @@
 </script>
 <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/systembasedhq-bit/3d@a0a457b200bb7b36bfd4a529e7596cabdf65b782/ghl/drop/assets/site-BVWKiS6u.css">
 
-<div id="sb-root" style="display:none">
+<div id="sb-root" data-sb-version="2-a0a457b" style="display:none">
 <a class="sr-only" href="#main">Skip to content</a>
 
     <header class="nav" id="nav">
@@ -58,8 +58,7 @@
     </div>
 
     <main id="main">
-      <!-- 1. Hero -->
-      <section class="hero" id="top">
+            <section class="hero" id="top">
         <canvas id="hero-canvas" aria-hidden="true"></canvas>
         <div class="intro-card" id="intro-card" aria-hidden="true">
           <span class="word chrome">System-Based</span>
@@ -85,8 +84,7 @@
         </div>
       </section>
 
-      <!-- 2. What we do -->
-      <section class="sec" id="company">
+            <section class="sec" id="company">
         <div class="wrap statement">
           <div class="eyebrow" data-reveal>What we do</div>
           <p class="display statement-line" id="statement-line" data-reveal="2"></p>
@@ -98,8 +96,7 @@
         </div>
       </section>
 
-      <!-- 3. Your bottleneck -->
-      <section class="sec diag-sec" id="start">
+            <section class="sec diag-sec" id="start">
         <div class="wrap">
           <div class="sec-head" data-reveal>
             <div class="eyebrow">Start with the problem</div>
@@ -111,8 +108,7 @@
         </div>
       </section>
 
-      <!-- 4. Watch the system go to work (one connected walkthrough) -->
-      <section class="story-sec" id="how" aria-labelledby="story-title">
+            <section class="story-sec" id="how" aria-labelledby="story-title">
         <div class="wrap story-head">
           <div class="eyebrow">See what happens behind the scenes</div>
           <h2 class="display h2" id="story-title">From the first inquiry<br />to the next action.</h2>
@@ -128,8 +124,7 @@
         </div>
       </section>
 
-      <!-- 5. The four systems -->
-      <section class="sec" id="systems">
+            <section class="sec" id="systems">
         <div class="wrap">
           <div class="sec-head" data-reveal>
             <div class="eyebrow">The four systems</div>
@@ -146,8 +141,7 @@
         </div>
       </section>
 
-      <!-- 6. Work -->
-      <section class="sec" id="work">
+            <section class="sec" id="work">
         <div class="wrap">
           <div class="work-head" data-reveal>
             <div class="sec-head" style="margin: 0">
@@ -164,8 +158,7 @@
         </div>
       </section>
 
-      <!-- 7. Your options -->
-      <section class="sec" id="packages">
+            <section class="sec" id="packages">
         <div class="wrap">
           <div class="sec-head center" data-reveal>
             <div class="eyebrow">Your options</div>
@@ -205,8 +198,7 @@
         </div>
       </section>
 
-      <!-- 8. One-time projects -->
-      <section class="sec" id="projects">
+            <section class="sec" id="projects">
         <div class="wrap">
           <div class="builds">
             <div class="sec-head" style="margin: 0" data-reveal>
@@ -229,8 +221,7 @@
         </div>
       </section>
 
-      <!-- 9. System-Based Business Community -->
-      <section class="sec" id="community">
+            <section class="sec" id="community">
         <div class="wrap community2">
           <div class="c-copy" data-reveal>
             <div class="eyebrow">System-Based Business Community</div>
@@ -251,8 +242,7 @@
         </div>
       </section>
 
-      <!-- 10. FAQ -->
-      <section class="sec" id="faq">
+            <section class="sec" id="faq">
         <div class="wrap faq">
           <div class="sec-head" data-reveal>
             <div class="eyebrow">Questions</div>
@@ -262,8 +252,7 @@
         </div>
       </section>
 
-      <!-- 11. Inquiry -->
-      <section class="sec inquiry" id="inquiry">
+            <section class="sec inquiry" id="inquiry">
         <div class="wrap inq">
           <div class="inq-side" data-reveal>
             <div class="eyebrow"><span class="dot"></span>Start here</div>
@@ -324,11 +313,9 @@
       </div>
     </footer>
 
-    <!-- your scope, always one tap away once it has something in it -->
-    <button type="button" class="scope-bar" id="scope-bar" hidden></button>
+        <button type="button" class="scope-bar" id="scope-bar" hidden></button>
 
-    <!-- community invitation -->
-    <div class="gateway-fx" id="gateway-fx" hidden aria-hidden="true"></div>
+        <div class="gateway-fx" id="gateway-fx" hidden aria-hidden="true"></div>
     <div class="invite" id="invite" role="dialog" aria-modal="true" aria-labelledby="invite-title" hidden>
       <div class="invite-backdrop"></div>
       <div class="invite-panel">
@@ -351,6 +338,8 @@
     // and hide only GHL's own (now empty) page wrapper. Chat widgets, pixels and
     // other scripts GHL adds to <body> are left untouched.
     if (window.__sbMounted) return;
+    if (document.querySelectorAll('#sb-root').length > 1)
+      console.warn('System-Based: an older copy of the site code is also on this page. Delete it so only this block remains.');
     var root = document.getElementById('sb-root');
     if (!root) return;
     window.__sbMounted = true;
