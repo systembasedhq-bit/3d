@@ -25,7 +25,8 @@ import {
   recommend,
 } from '../catalog/catalog.js'
 import { STATEMENT, SYSTEM_LINES, PACKAGE_FIT, FAQ } from './content.js'
-import { WORK, WORK_TYPES } from './work.js'
+import { WORK } from './work.js'
+import { createShowcase } from './experience/showcase.js'
 import { webglAvailable, createHero } from './scenes.js'
 import { $, $$, esc, safeUrl, session, REDUCED, scrollToId } from './experience/util.js'
 import { getScope, setScope, onScope, toggleService } from './experience/scope-store.js'
@@ -284,55 +285,9 @@ const explore = (code) => {
 /* Work                                                                */
 /* ================================================================== */
 const published = WORK.filter((w) => w.published)
-const isClientCase = (w) => w.clientCase && w.approved
 const STATUS = { live: 'Live project', demo: 'Working demo', soon: 'Concept / in progress' }
 const TYPE_LABEL = { site: 'Website', demo: 'Demo', brand: 'Brand', ai: 'AI & software' }
-let workFilter = 'all'
-const typesInUse = new Set(published.map((w) => w.type))
-$('#filters').innerHTML = WORK_TYPES.filter(
-  (t) => t.id === 'all' || (t.id === 'case' ? published.some(isClientCase) : typesInUse.has(t.id)),
-)
-  .map(
-    (t) =>
-      `<button type="button" class="chip${t.id === 'all' ? ' on' : ''}" data-filter="${t.id}">${esc(t.label)}</button>`,
-  )
-  .join('')
-const cardMedia = (w) => {
-  const m = w.media[0]
-  if (!m) return `<div class="placeholder"><span class="ph-glyph">${monogram(64)}</span></div>`
-  return `<img src="${m.poster || m.img}" alt="" loading="lazy" />`
-}
-function renderWork() {
-  const list = published.filter(
-    (w) =>
-      workFilter === 'all' || (workFilter === 'case' ? isClientCase(w) : w.type === workFilter),
-  )
-  $('#work-grid').innerHTML =
-    list
-      .map(
-        (
-          w,
-          i,
-        ) => `<button type="button" class="work-card${i === 0 && workFilter === 'all' ? ' wide' : ''}" data-work="${published.indexOf(w)}" style="animation-delay:${i * 0.07}s">
-        <div class="work-media">${cardMedia(w)}</div>
-        <div class="work-info">
-          <div class="work-meta"><span class="pill ${w.status}">${STATUS[w.status]}</span><span>${esc(TYPE_LABEL[w.type] || '')}</span>${isClientCase(w) ? '<span>Client case study</span>' : ''}</div>
-          <strong>${esc(w.title)}</strong>
-          <p>${esc(w.summary)}</p>
-        </div>
-      </button>`,
-      )
-      .join('') +
-    `<button type="button" class="work-card next" data-book data-from="work"><span class="eyebrow">Your project</span><strong>Your business could be next.</strong><span class="link">Start a project →</span></button>`
-}
-$('#filters').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-filter]')
-  if (!b) return
-  workFilter = b.dataset.filter
-  $$('[data-filter]').forEach((x) => x.classList.toggle('on', x === b))
-  renderWork()
-})
-renderWork()
+createShowcase()
 
 /* ================================================================== */
 /* Packages + composer                                                 */

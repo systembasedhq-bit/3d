@@ -25,8 +25,16 @@
           <a href="#community">Community</a>
         </nav>
         <div class="nav-cta">
-          <button type="button" class="btn sm primary" data-book data-from="nav">Book a call</button>
-          <button type="button" class="burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+          <button type="button" class="btn sm primary" data-book data-from="nav">
+            Book a call
+          </button>
+          <button
+            type="button"
+            class="burger"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="menu"
+          >
             <i></i><i></i>
           </button>
         </div>
@@ -52,13 +60,17 @@
         </div>
         <button type="button" class="intro-skip" id="intro-skip">Skip intro</button>
         <div class="wrap">
-          <div class="eyebrow" data-intro="1"><span class="dot"></span>Business systems for service companies</div>
+          <div class="eyebrow" data-intro="1">
+            <span class="dot"></span>Business systems for service companies
+          </div>
           <h1 class="display chrome" data-intro="2">Systems<br />over luck.</h1>
           <p class="lede" data-intro="3">
             We connect how your business gets customers, responds to them and gets work done.
           </p>
           <div class="hero-ctas" data-intro="4">
-            <a class="btn primary" href="#start" data-hero-primary>Find what’s slowing you down <span aria-hidden="true">&darr;</span></a>
+            <a class="btn primary" href="#start" data-hero-primary
+              >Find what’s slowing you down <span aria-hidden="true">&darr;</span></a
+            >
             <button type="button" class="btn" data-book data-from="hero">Book a call</button>
           </div>
         </div>
@@ -89,9 +101,17 @@
           <div class="sec-head" data-reveal>
             <div class="eyebrow">Start with the problem</div>
             <h2 class="display h2">What&rsquo;s slowing your business down?</h2>
-            <p class="lede">Pick the biggest bottleneck. We&rsquo;ll show you what solving it looks like.</p>
+            <p class="lede">
+              Pick the biggest bottleneck. We&rsquo;ll show you what solving it looks like.
+            </p>
           </div>
-          <div class="need-grid" id="need-list" role="group" aria-label="Choose your biggest bottleneck" data-reveal="2"></div>
+          <div
+            class="need-grid"
+            id="need-list"
+            role="group"
+            aria-label="Choose your biggest bottleneck"
+            data-reveal="2"
+          ></div>
           <div class="need-out" id="need-out" aria-live="polite"></div>
         </div>
       </section>
@@ -100,12 +120,19 @@
       <section class="story-sec" id="how" aria-labelledby="story-title">
         <div class="wrap story-head">
           <div class="eyebrow">See what happens behind the scenes</div>
-          <h2 class="display h2" id="story-title">From the first inquiry<br />to the next action.</h2>
+          <h2 class="display h2" id="story-title">
+            From the first inquiry<br />to the next action.
+          </h2>
           <p class="lede">
             Watch how a customer moves through a connected system. Every reply, booking and handoff
             has a place. Scroll to see what happens next.
           </p>
-          <div class="story-switch" id="story-switch" role="group" aria-label="Choose an example"></div>
+          <div
+            class="story-switch"
+            id="story-switch"
+            role="group"
+            aria-label="Choose an example"
+          ></div>
         </div>
         <div class="wrap story" id="story">
           <div class="story-stage" id="story-stage"></div>
@@ -132,20 +159,114 @@
       </section>
 
       <!-- 6. Work -->
-      <section class="sec" id="work">
+      <section class="sec showcase" id="work">
         <div class="wrap">
-          <div class="work-head" data-reveal>
-            <div class="sec-head" style="margin: 0">
-              <div class="eyebrow">Our work</div>
-              <h2 class="display h2">See it running.</h2>
-              <p class="lede">
-                Live projects and working demos, each with the problem, what was built and what
-                changed.
-              </p>
-            </div>
-            <div class="filters" id="filters" role="group" aria-label="Filter work"></div>
+          <div class="sec-head center" data-reveal>
+            <div class="eyebrow">Our work</div>
+            <h2 class="display h2">See it running.</h2>
+            <p class="lede">
+              Real businesses, running on systems we built. Tap a logo to watch the project come
+              together.
+            </p>
           </div>
-          <div class="work-grid" id="work-grid"></div>
+          <div class="brand-wall" id="brand-wall"></div>
+
+          <div class="show-tabs-row">
+            <div class="toggle show-tabs" id="show-tabs" role="tablist" aria-label="Our work">
+              <span class="thumb"></span>
+              <button
+                type="button"
+                role="tab"
+                id="tab-built"
+                data-tab="built"
+                aria-controls="show-built"
+                aria-selected="true"
+              >
+                What we&rsquo;ve built
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="tab-building"
+                data-tab="building"
+                aria-controls="show-building"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                What we&rsquo;re building
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="tab-how"
+                data-tab="how"
+                aria-controls="show-how"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                How it works
+              </button>
+            </div>
+          </div>
+
+          <div class="show-panel" id="show-built" role="tabpanel" aria-labelledby="tab-built">
+            <div class="proj-grid" id="proj-built"></div>
+            <h3 class="show-sub">Live demos</h3>
+            <div class="demo-grid" id="demo-grid"></div>
+          </div>
+          <div
+            class="show-panel"
+            id="show-building"
+            role="tabpanel"
+            aria-labelledby="tab-building"
+            hidden
+          >
+            <p class="show-note">
+              Projects in progress right now. Follow the builds as they happen in the
+              <a class="link" href="#community">Community build log</a>.
+            </p>
+            <div class="proj-grid" id="proj-building"></div>
+          </div>
+          <div class="show-panel" id="show-how" role="tabpanel" aria-labelledby="tab-how" hidden>
+            <div class="how-grid">
+              <article class="how-card">
+                <span class="eyebrow">01 · Follow one lead</span>
+                <h3>Watch a missed call become a booked job.</h3>
+                <p>
+                  The scroll walkthrough shows each step: the reply, the customer record, the
+                  handoff and what the owner sees.
+                </p>
+                <button type="button" class="btn primary" data-how="any">
+                  Start the walkthrough
+                </button>
+              </article>
+              <article class="how-card">
+                <span class="eyebrow">02 · The systems behind our clients</span>
+                <h3>Same systems, shown step by step.</h3>
+                <p>
+                  Each walkthrough uses an illustrative business, so you can see how the system
+                  works without anyone&rsquo;s private data.
+                </p>
+                <div class="how-links">
+                  <button type="button" class="link" data-how="response">
+                    Fast response, like Divine Detailing →
+                  </button>
+                  <button type="button" class="link" data-how="ops">
+                    Jobs and operations, like Wreck &amp; Refine →
+                  </button>
+                  <button type="button" class="link" data-how="brand">
+                    Brand and website, like Veterans Funeral Care →
+                  </button>
+                </div>
+              </article>
+              <article class="how-card">
+                <span class="eyebrow">03 · Watch us build</span>
+                <h3>See what&rsquo;s on the bench this week.</h3>
+                <p>Builds, launches and lessons from real projects, posted as they happen.</p>
+                <a class="btn" href="#community">Open the build log</a>
+              </article>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -162,7 +283,9 @@
             <div class="toggle" id="config-toggle" role="group" aria-label="Configure">
               <span class="thumb"></span>
               <button type="button" aria-pressed="true" data-view="packages">Packages</button>
-              <button type="button" aria-pressed="false" data-view="composer">Build your own</button>
+              <button type="button" aria-pressed="false" data-view="composer">
+                Build your own
+              </button>
             </div>
             <p class="draft-note" id="draft-note" hidden></p>
           </div>
@@ -170,8 +293,18 @@
           <div id="view-packages">
             <div class="plans" id="plans" data-reveal="2"></div>
             <div class="pkg-actions">
-              <button type="button" class="btn" id="compare-btn" aria-expanded="false" aria-controls="matrix">See every service compared</button>
-              <button type="button" class="btn" data-performance>How performance pricing works</button>
+              <button
+                type="button"
+                class="btn"
+                id="compare-btn"
+                aria-expanded="false"
+                aria-controls="matrix"
+              >
+                See every service compared
+              </button>
+              <button type="button" class="btn" data-performance>
+                How performance pricing works
+              </button>
             </div>
             <div class="matrix-wrap" id="matrix" hidden></div>
             <p class="fine">
@@ -198,9 +331,9 @@
               <div class="eyebrow">One-time projects</div>
               <h2 class="display h2">Built once.<br />Quoted per project.</h2>
               <p class="lede">
-                Websites, brands, 3D and motion, agents, integrations and custom software. Scoped and
-                quoted after a short call, then handed over. If you want it to keep working for you,
-                it can connect to Client Response as a separate monthly service.
+                Websites, brands, 3D and motion, agents, integrations and custom software. Scoped
+                and quoted after a short call, then handed over. If you want it to keep working for
+                you, it can connect to Client Response as a separate monthly service.
               </p>
             </div>
             <div class="build-grid" id="builds" data-reveal="2"></div>
@@ -208,7 +341,9 @@
           <ol class="process" id="process" data-reveal></ol>
           <div class="sec-head center" style="margin: clamp(56px, 8vw, 96px) 0 36px" data-reveal>
             <div class="eyebrow">Upgrade path</div>
-            <h3 class="display" style="font-size: clamp(26px, 3.4vw, 44px)">Grow one level at a time.</h3>
+            <h3 class="display" style="font-size: clamp(26px, 3.4vw, 44px)">
+              Grow one level at a time.
+            </h3>
           </div>
           <div class="path" id="path-track"></div>
         </div>
@@ -254,8 +389,8 @@
             <div class="eyebrow"><span class="dot"></span>Start here</div>
             <h2 class="display h2">Let&rsquo;s build your<br />starting point.</h2>
             <p class="lede">
-              Tell us where your business is losing time or opportunities. We&rsquo;ll recommend what
-              makes sense before building anything.
+              Tell us where your business is losing time or opportunities. We&rsquo;ll recommend
+              what makes sense before building anything.
             </p>
             <div class="inq-scope" id="inq-scope"></div>
           </div>
@@ -267,25 +402,54 @@
               <input id="f-biz" name="business" autocomplete="organization" />
               <label for="f-email">Email</label>
               <input id="f-email" name="email" type="email" autocomplete="email" required />
-              <label for="f-phone">Phone <em>(optional, if you’d rather we call or text)</em></label>
+              <label for="f-phone"
+                >Phone <em>(optional, if you’d rather we call or text)</em></label
+              >
               <input id="f-phone" name="phone" type="tel" autocomplete="tel" />
-              <label class="full" for="f-problem">What&rsquo;s the biggest thing you want fixed?</label>
+              <label class="full" for="f-problem"
+                >What&rsquo;s the biggest thing you want fixed?</label
+              >
               <select class="full" id="f-problem" name="problem"></select>
-              <label class="full" for="f-msg">Anything else we should know? <em>(optional)</em></label>
-              <textarea class="full" id="f-msg" name="message" placeholder="e.g. we miss calls after 5pm and nobody follows up"></textarea>
+              <label class="full" for="f-msg"
+                >Anything else we should know? <em>(optional)</em></label
+              >
+              <textarea
+                class="full"
+                id="f-msg"
+                name="message"
+                placeholder="e.g. we miss calls after 5pm and nobody follows up"
+              ></textarea>
               <label class="full" for="f-next">Preferred next step</label>
               <select class="full" id="f-next" name="next_step">
                 <option>A short fit call</option>
                 <option>A written recommendation first</option>
               </select>
-              <label class="full check"><input type="checkbox" id="f-perf" name="performance" /> I&rsquo;m interested in performance-based pricing</label>
-              <label class="full check"><input type="checkbox" id="f-consent" name="consent" /> Send me occasional updates by email or text. <em>(optional, unsubscribe any time)</em></label>
-              <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+              <label class="full check"
+                ><input type="checkbox" id="f-perf" name="performance" /> I&rsquo;m interested in
+                performance-based pricing</label
+              >
+              <label class="full check"
+                ><input type="checkbox" id="f-consent" name="consent" /> Send me occasional updates
+                by email or text. <em>(optional, unsubscribe any time)</em></label
+              >
+              <input
+                type="text"
+                name="website"
+                class="hp"
+                tabindex="-1"
+                autocomplete="off"
+                aria-hidden="true"
+              />
               <div class="full submit-row">
-                <button class="btn primary" type="submit">Send my scope <span aria-hidden="true">&rarr;</span></button>
+                <button class="btn primary" type="submit">
+                  Send my scope <span aria-hidden="true">&rarr;</span>
+                </button>
                 <span class="form-msg" id="form-msg" role="status"></span>
               </div>
-              <p class="full fine-l">We reply personally with a recommendation and a next step. Your details are only used to respond to this request.</p>
+              <p class="full fine-l">
+                We reply personally with a recommendation and a next step. Your details are only
+                used to respond to this request.
+              </p>
             </form>
             <div class="inquiry-done" id="inquiry-done" tabindex="-1" hidden></div>
           </div>
@@ -314,7 +478,14 @@
 
     <!-- community invitation -->
     <div class="gateway-fx" id="gateway-fx" hidden aria-hidden="true"></div>
-    <div class="invite" id="invite" role="dialog" aria-modal="true" aria-labelledby="invite-title" hidden>
+    <div
+      class="invite"
+      id="invite"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="invite-title"
+      hidden
+    >
       <div class="invite-backdrop"></div>
       <div class="invite-panel">
         <button type="button" class="invite-x" data-invite-x aria-label="Close">&#10005;</button>
@@ -322,7 +493,85 @@
       </div>
     </div>
 
-    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sheet-title">
+    <!-- live demo -->
+    <div class="demo" id="demo" role="dialog" aria-modal="true" aria-labelledby="demo-title" hidden>
+      <div class="demo-top">
+        <div class="demo-head">
+          <span class="eyebrow">Live demo</span>
+          <strong id="demo-title"></strong>
+          <small id="demo-note"></small>
+        </div>
+        <button type="button" class="film-x" id="demo-close" aria-label="Close the demo">
+          &#10005;
+        </button>
+      </div>
+      <div class="demo-frame">
+        <p class="demo-loading" id="demo-loading">Loading&hellip;</p>
+        <iframe
+          id="demo-iframe"
+          title="Live demo"
+          sandbox="allow-scripts allow-downloads allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox"
+        ></iframe>
+      </div>
+    </div>
+
+    <!-- project film -->
+    <div
+      class="film"
+      id="film"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="film-label"
+      tabindex="-1"
+      hidden
+    >
+      <div class="film-bg" aria-hidden="true"></div>
+      <div class="film-bars" aria-hidden="true"><i></i><i></i></div>
+      <div class="film-stage" id="film-stage"></div>
+      <div class="film-top">
+        <span class="film-label"
+          ><span class="film-rec" aria-hidden="true"></span><span id="film-label"></span
+        ></span>
+        <button type="button" class="film-x" id="film-close" aria-label="Close">&#10005;</button>
+      </div>
+      <div class="film-bottom">
+        <button
+          type="button"
+          class="film-pause"
+          id="film-pause"
+          aria-label="Pause"
+          aria-pressed="false"
+          data-state="playing"
+        >
+          <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" />
+          </svg>
+          <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <svg class="i-replay" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z" />
+          </svg>
+        </button>
+        <div class="film-chapters" id="film-chapters" role="group" aria-label="Chapters"></div>
+        <button type="button" class="film-nav" id="film-prev" aria-label="Previous project">
+          &larr;
+        </button>
+        <button type="button" class="film-nav next" id="film-next">
+          <span class="sr-only">Next project: </span><em></em> &rarr;
+        </button>
+      </div>
+      <p class="sr-only" id="film-live" aria-live="polite"></p>
+    </div>
+
+    <div
+      class="sheet"
+      id="sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="sheet-title"
+    >
       <div class="sheet-backdrop" data-close></div>
       <div class="sheet-panel">
         <button type="button" class="sheet-close" data-close aria-label="Close">&#10005;</button>

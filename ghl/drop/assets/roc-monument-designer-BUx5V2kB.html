@@ -1,0 +1,1673 @@
+<title>ROC Monument Designer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" id="gf" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Cinzel:wght@400;600&family=Marcellus&family=EB+Garamond:ital@0;1&family=Libre+Baskerville:ital@0;1&family=IM+Fell+English:ital@0;1&family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Great+Vibes&family=Pinyon+Script&family=Oswald:wght@500&family=Josefin+Sans:wght@400;600&family=Saira+Stencil+One&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout concept: a stonecutter's drafting bench. Step rail, option panel, and a true-scale
+   drawing board where the monument is always the largest thing on screen.
+   ROC brand system (green identity, dusty rose accent) carried over from the ROC site build.
+   Fixed light theme on purpose: granite colors must read the same for every family. */
+:root{
+  --roc:#47704C; --roc-dark:#314F36; --roc-deep:#253D2B; --roc-soft:#DCE6DD; --roc-pale:#F1F5F1;
+  --accent:#B5A4A9; --accent-soft:#EAE1E4; --accent-deep:#927D84;
+  --surface:#FFFFFF; --bg:#FBFAF7; --sunk:#EFEEE9; --sunk-2:#E4E2DC;
+  --ink:#242724; --ink-2:#535A55; --ink-3:#7A817B;
+  --line:#D8D7D1; --line-2:#C9C8C1;
+  --stage:#E7E6E0; --stage-ink:#5d625e;
+  --warn:#8a5a1c; --warn-bg:#F6EFE3; --err:#9b2f2a; --err-bg:#F8E9E7; --ok:#47704C;
+  --display:'Fraunces','Iowan Old Style',Georgia,serif;
+  --body:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --r:8px; --hdr:60px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--body);-webkit-font-smoothing:antialiased;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--roc);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);font-weight:500;line-height:1.1;margin:0;text-wrap:balance}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font:500 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.muted{color:var(--ink-2)}
+.small{font-size:12.5px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--surface);border-bottom:1px solid var(--line);height:var(--hdr)}
+.top .in{display:flex;align-items:center;gap:14px;height:100%;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top img{height:38px;width:auto;display:block}
+.top .ttl{display:flex;flex-direction:column;gap:3px;padding-left:14px;border-left:1px solid var(--line)}
+.top .ttl b{font:500 17px/1 var(--display)}
+.top .sp{flex:1}
+.top .acts{display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line-2);background:var(--surface);padding:8px 13px;border-radius:var(--r);font-weight:500;font-size:13.5px;white-space:nowrap;text-decoration:none;color:var(--ink);line-height:1.2}
+.btn:hover{border-color:var(--ink-2)}
+.btn.pri{background:var(--roc);border-color:var(--roc);color:#fff}
+.btn.pri:hover{background:var(--roc-dark)}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.ghost{border-color:transparent;background:none}
+.btn.sm{padding:5px 9px;font-size:12.5px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn svg{width:15px;height:15px;flex:none}
+.sitelink{background:var(--roc-pale);border-color:var(--roc-soft);color:var(--roc-deep)}
+.staff{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 5px;background:var(--surface)}
+.staff i{width:28px;height:16px;border-radius:9px;background:var(--line-2);position:relative;transition:.15s}
+.staff i::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:.15s}
+.staff[aria-pressed="true"]{color:var(--roc-deep);border-color:var(--roc-soft);background:var(--roc-pale)}
+.staff[aria-pressed="true"] i{background:var(--roc)}
+.staff[aria-pressed="true"] i::after{left:14px}
+
+/* app grid */
+.app{display:grid;grid-template-columns:92px minmax(330px,390px) 1fr;height:calc(100% - var(--hdr));min-height:560px}
+.rail{background:var(--surface);border-right:1px solid var(--line);overflow-y:auto;padding:10px 6px;display:flex;flex-direction:column;gap:2px}
+.rail button{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;padding:10px 4px;border-radius:var(--r);color:var(--ink-2);font-size:11.5px;font-weight:500;line-height:1.15;text-align:center;position:relative}
+.rail button .n{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line-2);display:grid;place-items:center;font:500 12px var(--mono);background:var(--surface)}
+.rail button.done .n{border-color:var(--roc);color:var(--roc)}
+.rail button[aria-current="step"]{background:var(--roc-pale);color:var(--roc-deep)}
+.rail button[aria-current="step"] .n{background:var(--roc);border-color:var(--roc);color:#fff}
+.rail button:hover{background:var(--sunk)}
+.rail button .flag{position:absolute;top:8px;right:16px;width:8px;height:8px;border-radius:50%;background:#c58a2c}
+
+.panel{background:var(--bg);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;min-width:0}
+.pbody{flex:1;overflow-y:auto;padding:20px 18px 28px;display:flex;flex-direction:column;gap:22px}
+.pbody>header h2{font-size:26px;margin-top:6px}
+.pbody>header p{margin:8px 0 0;color:var(--ink-2)}
+.pfoot{display:flex;gap:8px;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--line);background:var(--surface)}
+.grp{display:flex;flex-direction:column;gap:10px}
+.grp>.lg{display:flex;align-items:center;gap:8px;font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--roc-deep)}
+.grp>.lg::after{content:"";flex:1;height:1px;background:var(--line)}
+.grp>.lg .x{font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-3)}
+label.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+label.f>span{font-size:12px;font-weight:500;color:var(--ink-2)}
+input[type=text],input[type=number],input[type=email],input[type=tel],input[type=date],select,textarea{width:100%;background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:8px 10px;font-size:14px;min-width:0}
+textarea{resize:vertical;min-height:62px;line-height:1.4}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--roc);box-shadow:0 0 0 3px rgba(71,112,76,.15)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1;min-width:0}
+.dims3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dims3 label.f small{font:400 11px var(--mono);color:var(--ink-3)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line-2);background:var(--surface);padding:6px 11px;border-radius:20px;font-size:13px;font-weight:500;color:var(--ink-2)}
+.chip:hover{border-color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:10px 11px;text-align:left;display:flex;flex-direction:column;gap:3px}
+.opt b{font-weight:600;font-size:13.5px}
+.opt span{font-size:12px;color:var(--ink-3);line-height:1.35}
+.opt:hover{border-color:var(--ink-2)}
+.opt[aria-pressed="true"]{border-color:var(--roc);box-shadow:inset 0 0 0 1px var(--roc);background:var(--roc-pale)}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.sw button{border:0;background:none;padding:0;display:flex;flex-direction:column;gap:4px;text-align:left;font-size:11px;line-height:1.2;color:var(--ink-2)}
+.sw button i{display:block;aspect-ratio:1;border-radius:6px;background-size:96px;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);max-width:100%}
+.sw button[aria-pressed="true"] i{border-color:var(--roc);box-shadow:0 0 0 2px var(--surface) inset}
+.sw button[aria-pressed="true"]{color:var(--ink);font-weight:600}
+.shapes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.shapes button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--ink-2)}
+.shapes button svg{width:100%;height:40px}
+.shapes button[aria-pressed="true"]{border-color:var(--roc);background:var(--roc-pale);color:var(--roc-deep)}
+.fonts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.fonts button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:8px 10px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.fonts button em{font-style:normal;font-size:19px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.fonts button span{font-size:11px;color:var(--ink-3)}
+.fonts button[aria-pressed="true"]{border-color:var(--roc);background:var(--roc-pale)}
+.art{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.art button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:8px 4px 5px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--ink-2);line-height:1.15;text-align:center}
+.art button svg{width:42px;height:42px;color:var(--ink)}
+.art button:hover{border-color:var(--roc)}
+.art button small{font:400 9.5px var(--mono);color:var(--ink-3)}
+.person{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:8px}
+.person .hd{display:flex;justify-content:space-between;align-items:center}
+.person .hd b{font-size:13px}
+.lines{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.lines button{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;border:0;border-bottom:1px solid var(--line);background:none;padding:8px 10px;text-align:left;font-size:13px}
+.lines button:last-child{border-bottom:0}
+.lines button[aria-pressed="true"]{background:var(--roc-pale)}
+.lines button .k{font:500 11px var(--mono);color:var(--ink-3)}
+.lines button .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lines button .h{font:500 11.5px var(--mono);color:var(--ink-2)}
+.note{border-radius:var(--r);padding:10px 12px;font-size:12.5px;line-height:1.45;background:var(--sunk);color:var(--ink-2)}
+.note.warn{background:var(--warn-bg);color:var(--warn)}
+.note.err{background:var(--err-bg);color:var(--err)}
+.note.ok{background:var(--roc-pale);color:var(--roc-deep)}
+table.spec{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+table.spec th,table.spec td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+table.spec th{font-weight:500;color:var(--ink-3);width:38%}
+table.spec td{font-variant-numeric:tabular-nums}
+table.spec tr:last-child th,table.spec tr:last-child td{border-bottom:0}
+.checks{display:flex;flex-direction:column;gap:6px}
+.chk{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:start;font-size:12.5px;padding:8px 10px;border-radius:7px;background:var(--surface);border:1px solid var(--line)}
+.chk i{width:10px;height:10px;border-radius:50%;margin-top:4px;background:var(--ok)}
+.chk.warn i{background:#c58a2c}.chk.err i{background:var(--err)}.chk.info i{background:var(--accent-deep)}
+.chk button{border:0;background:none;padding:0;color:var(--roc-dark);text-decoration:underline;font-size:12px}
+.upload{border:1.5px dashed var(--line-2);border-radius:var(--r);padding:14px;text-align:center;background:var(--surface);color:var(--ink-2);font-size:13px;cursor:pointer}
+.upload:hover{border-color:var(--roc)}
+.cbx{display:flex;gap:9px;align-items:flex-start;font-size:13px}
+.cbx input{margin-top:3px;accent-color:var(--roc)}
+.sig{border:1px solid var(--line-2);border-radius:var(--r);background:var(--surface);height:120px;width:100%;touch-action:none;display:block}
+.est{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.est b{font:500 22px var(--display)}
+.route{display:flex;flex-direction:column;gap:6px}
+.route label{display:grid;grid-template-columns:18px 1fr;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px}
+.route label input{accent-color:var(--roc);margin-top:2px}
+.route label b{display:block;font-size:13px}
+.route label code{font:400 11.5px var(--mono);color:var(--ink-2);user-select:all;word-break:break-all}
+.qs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qs button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:6px;display:flex;flex-direction:column;gap:4px;text-align:left;font-size:12px;font-weight:500}
+.qs button svg{width:100%;height:auto;aspect-ratio:4/3;border-radius:5px;display:block}
+.qs button span{padding:0 4px 3px}
+.qs button:hover{border-color:var(--roc)}
+
+/* stage */
+.board{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--stage)}
+.tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tools .grpb{display:flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:var(--r);background:var(--sunk)}
+.tools .grpb button{border:0;background:none;padding:5px 9px;border-radius:6px;font-size:12.5px;font-weight:500;color:var(--ink-2);display:inline-flex;gap:5px;align-items:center}
+.tools .grpb button svg{width:14px;height:14px}
+.tools .grpb button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tools .grpb button[disabled]{opacity:.35}
+.tools .sp{flex:1}
+.zoomv{font:500 11.5px var(--mono);color:var(--ink-3);min-width:40px;text-align:center;align-self:center}
+.inspector{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;padding:9px 12px;background:var(--roc-pale);border-bottom:1px solid var(--roc-soft)}
+.inspector label.f{flex:0 1 auto}
+.inspector label.f>span{font-size:11px}
+.inspector input,.inspector select{padding:5px 8px;font-size:13px}
+.inspector .tx{flex:1 1 200px}
+.inspector .nm{width:84px}
+.inspector .tag{font:600 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--roc-deep);align-self:center;padding-right:4px}
+.stage{flex:1;min-height:0;overflow:auto;position:relative;touch-action:none}
+.stage svg.mon{display:block;width:100%;height:100%;user-select:none;-webkit-user-select:none}
+.stage .side-tag{position:absolute;left:12px;top:10px;font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--stage-ink);background:rgba(255,255,255,.7);padding:4px 8px;border-radius:5px;pointer-events:none}
+.specbar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:12.5px}
+.specbar .pc{display:flex;gap:5px;align-items:center}
+.specbar .pc b{font-weight:600;width:52px;color:var(--ink-2)}
+.specbar input{width:50px;padding:4px 5px;font:500 12.5px var(--mono);text-align:center}
+.specbar select{width:auto;padding:4px 5px;font-size:12.5px}
+.specbar .wt{font:500 12px var(--mono);color:var(--ink-3);min-width:62px}
+.specbar .tot{margin-left:auto;font:500 12.5px var(--mono);color:var(--ink)}
+.specbar .x{color:var(--ink-3);font-size:11px}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(28,30,28,.5);z-index:80;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal{background:var(--surface);border-radius:12px;max-width:920px;width:100%;max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.modal .mh{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);gap:10px}
+.modal .mb{overflow:auto;padding:18px;display:flex;flex-direction:column;gap:14px;background:var(--sunk)}
+.modal .mb img{width:100%;border:1px solid var(--line);background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.modal pre{white-space:pre-wrap;font:12px/1.5 var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin:0;max-height:340px;overflow:auto}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--r);z-index:90;font-size:13.5px;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:minmax(300px,360px) 1fr;grid-template-rows:auto 1fr}
+  .rail{grid-column:1/-1;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:6px max(16px,env(safe-area-inset-left,0px))}
+  .rail button{flex-direction:row;gap:7px;padding:7px 10px;white-space:nowrap;font-size:12.5px}
+  .rail button .flag{top:6px;right:4px}
+  .top .ttl{display:none}
+}
+@media (max-width:820px){
+  :root{--hdr:56px}
+  .app{display:flex;flex-direction:column;height:auto}
+  .board{order:1;height:62vh;min-height:380px;position:sticky;top:var(--hdr);z-index:5}
+  .rail{order:0}
+  .panel{order:2;border-right:0}
+  .pbody{overflow:visible}
+  .top .acts .hide-m{display:none}
+  .top img{height:30px}
+  .specbar{display:none}
+  .tools{padding:6px 10px}
+  .tools .hide-m{display:none}
+}
+@media (max-width:480px){
+  .board{height:54vh}
+  .staff span{display:none}
+  .opts{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top"><div class="in">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARkAAABJCAMAAAA+N6JmAAABL1BMVEVHcEwkICDDs7UkICAkICAkIB8kICAkIB8kICAkICAkICAkICAkIB/JurskIB8kIB+0n6YkIB++rLC8q6fNwLvPxLq2oajNwLtUTkckIB/RxL3QxrTEtrK3oqnOwL/PwsDHt7mynaWqmJnLvLzQwsHGua5wa2DCsbPWzMaynaW3o6na08WxmqO0oaKtlqC/rbDSxsSslZ+8qq5jXVSvmaLHt7mWkILTx8O6p6zFtbfEtLZ1b2Lo4te7qK24o6nm39bRxMK2oajs59u7qaqtlqDWzMe9qq6blIGFfnCOh3esl53r5tuzoKXo49jn4NbZzsnx7N3j29QjHx8bFxnq5drm39XPw8Dj29Le1s7VysVHQj3Ku7vy7eA6NTEuKifEtLaHgXS3sKGim43Gvq+tppdjVcl8AAAAUnRSTlMA2wW0MsbpCR/1k2BOE3ukNGv+CT5X/jD+QSJMgCDwvJR3tGKgbv68gGjZ/lmfjktuS475+Nf93YDm9egLqhjIycV15c6pWsLc0uhRs/KewN/n2OSFfAAAEBVJREFUeNrtnOly4roWhWWDjQ0YDNg4mHkKQxgCgc7UIXN67j5HDEkIkOm8/zPcLdkdGS4kXbfq/iFnVSoxkixbH3svSXZXo7fUSiZbkRZCkQj6V0zJRqSRbHXUhopalWQE/UsHITWiqghVOslGUu1kW7lIJZuLtFronQsyJ5tsXERQ7ivETORrI/I1mW1UkrkIUlsRFb1f1ZKoEcl1WiiXRblKq6VCzFy0yI+aa2Qr6P2qoUbqqNHJQk4lLyoNhHK15EWkchHJ5b5mc+/VbsgcVFeTOaR2KiR8LtQciuQijQpqfP2aA9upq5VksobemyKRyEU9metF6irJKYSyXwFSrVG7qNVqnQZQgyyr9XJq8r25DRBpQML0kHrRQ4gHw+3Uc0kIFogdtdOiYDoXgKn+3sigbCNSU7PVRhZcptLis5FG56LeAT8Gt6lWoL7TaNXU2vceem9q1FrRTq12EY3W0Wmtl0W9TjRaRbVOT21lq2qt0wJgqFN9XzGjqqhXBX/J9hBfj35H39VWm+ezQCbbqQAcFSA1eLWqZr+r74tM7Xv9NHrasihFq70eyrbV0xrwiFYalV609j0ahRK1VeXrnV5P5RGP3oN4wuMUKLSJh7Sj0dP2d4igRpbQ4qunqFIBMlHwm9OKGq31qtVK+30ETq1dydare5A85+3KUZSoesUDr6MoZBl4DaQa4OLhTw/yjldrp5V3EjPZ76fEPfai50AAtKfyzer5HqoDGf5or9njq9HTHmlQbR/tIVRvIvQe8qlyuoeoslXwl/MoCZKmWj+tABkNCKjnvd55VIX6aIlgQmq2d4X21n8TBZGiNSs9IHSu9mDY52GgsNdTSTaFr6DB1R7aCx+h3lE4a59R2utdAbQ1F39Ub1bDYCB75xpfDZd6gOYIZY/26j1UCu/1yDSkhsOlvXMKptfraUdXvV5z7cGgCBhrpdLj99oQH81SSUVaOFxphrNhFcjU24BDqYZBNH6a53DQzlab6B2Jr5q2qybC4aOjq3ATQQglwgokFVWmqRbD4b2r0v6RxrdL7wAO4LgqKpAyEC4ZYi+9fUDTDKv8frgEpWaYqXvVbvIKr6AiiaH/mzye/1fHf1zLm+1S14RxlhQlAVC0UklBNEiuEjwgKaG22nzhsp8AJN0mlCE+sV9CyxQKhSR6FX8o5EZE9icqP7t4LBSK2Qe0mLWNBYJBr09CDrlDIJ/b42jl880PM0YvxyTZvTpP8Qa9i4WOW/QGA25Gpn0QbmuGsn9fQmYprzSVTJtv5u/v79uA6f4+g4DB/X03UUy0M3nFgllKIJCiqMtcGGPspWMRMQ6wywqYSmD3FYRPEqlysWIiKShjGX6EGGIKYCLRK7FmoijNgRBwcG7QPuyahyC5sCzKcgAtV0iWOZlzoFEUlDgwmwf3Bp8pme0MGMi+UqJMivf3xWIRZe4PDISgVVdDvJ4p7bcVQ0FGwjgoLicjSHQsC2S8CzEDZGQ/RcjIWKDEQMztEzAXc5Jx+XwBDgdWkvHJWHS/SsaLhZjkC7pXhIwg+yQvuwDPIxIbCaTZjqofdDMHvHFwf9BEwKfZvG+WgBJIaXczSumglNDy3YMMKpVKB8oyMiIn++mFhHkyUEjFyAAtDxm0IDvIhLDot2MARsbIeNlgnWQYUNGFA0vJMOQ+6mArybhRiHWhFMnoCgnKyND1JCp1MyUe6YCmdHB/ryEjfwC/URIQEnMxEGpCruWV/Xxm6eyEOS8J65jsCi6S8YCcZAIiJ0GNGAAy7P4pLpBfFt0LZEKrycD1YtDda2SCOCh5VruvF3v9nMjiVCsk8olMkUf5PNITma5e6CaTCBE0RAZgu+/ySbBnJa7xXeI7pXso4Q20XJijd+jFIe88GSEI8jnJ+OAHhhT0Y0ZG4rD/5cjnICOEAl5RDi1mExt2CKCGXssmv4i54EoDhqwGo/F5PC/0zEw3lborJfUib+Tzxf27VBIRxVN3IMB1d1dIJjRd279LJO8gZpKpVCmp5IGMkSkuIyPBgCWOkxbIyCIo4CTj90F0ebFvgUzs5RQnGSxjzAU8K8i4ybcRgn5eIePxu0Qsu6QVYFyyDOEquQQ/tRktr4EJJxN3+3HeIFSUxB0kE1GGkNkvpABPMZ/QuncZlICCvGkCF7AcHj7Fl5LxYxcZ8wKZkOR2u6U5MhIn+gHhAhkfix6nA/upLS2SYTHl98Ps4l9NBuRxBzhHJwsuBMkkB7x2vZaCqAAZEBiIN7WkoqA0ICCK3/1WIp3aTxoGMvfv7lJ3qUKm2wUkSjodR0vJwIAFuEfvWw5MmgiyF1EyLC3sAYWgpzmf8cOcukiG8cSyLGPicMvJsFJhKRm3DFeLcbIsWL3yMF5QAgKjy9PcSmsQChmFmDMUUgGNdJoUFYCfqWXoBzNvrvAZajJYgN9vObAfTAbLMUaGKCbKJGc8MevbZWSoha7IJqAYAHkt02ZkiNjgY543yMBl2EWNhGFmRoXuaJQ3DYCjdVOj0SiVzmTSoxdlkKLw4DzQCFnKp0ap+EoyMZlAWebAQclJhhZ75sl4ArLsCgSCIqaOwMhQaP4FMixX7ZQIOMiIQVCILQVFL10SrZi0wQJCHAReyGNtmZRCN13Q0DbBMUprCCmaYeZHczrh80DEJMgK+e28ZhqZUdpIpPJoiYA9WVy4gQybSaBEphLdjAwZZkAOkPnZNbfsF2R7vcsUkr1Q43U0JB7PZh37OATJwJZ+VF6GnKPdrpicYuSqXMjHifSu8yfbPEQDMnZ301Z0GIamaRARTmlmiszezqKUgpBe0JeFJdncSNYvyeF9thzp8NLQQ4uZJLKTkpxFdl8Sa0hPYieQ48VCN5HzHiQ/3XqtkCfmg4t64DRqKyejAsoXTkYpQ9kdbccpHqY7+juN4hAdGgSMrhd2TwrbZRJGiqKUFbTGMszt0e7JpYFQeaQZ/PZuavcknT7ZHTHpiEbVqKBkygbPIxI+cM5uOlVGaytT17ZHZVNXEAKrKUDSxLdJdvGKlr61NTKhMr57OzJ47SRV5lG5rI12dTOfKm+jtZVZLqTL4K0wzygnqcJtfBsixBJ/cmvrMq5fwp+yktaRqSFldJvfPSEoT4z1TqcCj7T0dnw3pRtp45KFwfatQ7uXOpSkeaWwrezebudvoR1fKJhofcX/OqEYUtvKwss1nXEZQaUlM3V7qae2kb6bLpfL+jq/jeN3txHSfv0yENEKMrozxC5N0yR5eFnWtVfJeIjmDpyTuLRQwtqyiuVlrHSh+L9LWC+szNKqm2HiYXTK5TYb4pJsukT/k/yC4JLYAZMUEERZFALOMrcg0DWY5HI09f8uC0ore2XnU/nYVVwCPc0TdLnZyba8DFYIbobzSsvjhkdLlH4h8z9Ozj6Msc/aJGLR7YSAZcElyNiJi+ygQvbjhMVNIStb3atbljki5wMcjOkOjJMZGWghY5Hj2AYsJMMmghP96I+lbd3cXBPd3Pxa8U8e3yQj0y2gxFm7Arbf5/wQz36O1jIymJP+iIzIenWS4dwSyDNHRozNk/FAC0H20WZsy+VB0vwDLaOoxzXN0OK6XiwWdc2cd+br28cPDw8PHx5HN+VFKPFE7tOXL59y9aIWeYWMixPd7K8tvyzG7AM55iDDkeecq8ms7pXtlakYGTFIzrfJMBSy39mKg4+Lqm+Mxxug8XQ6nc2mG4e5sq7r5cLlr18F/efoYYyn4zHu4/HD809NM02LmKnp9c9jaD+ezvr96UYuspqM14tDZDPpc47BS4drfV0BBxkhBje5kszKXhmZmL0vY2RiEBCryLAIFnyLBmwUE4d9oofHfx6m8BfvPN/81tO0P3sabW09b0LF9MPNzdZxAbBdHv943pz1pw/Pt7vl4qeNfn/DeIWMH4bmFgU3HQN7ePbCKOgk4wlgQfoTMn6Z9crIYBkkxpxkJD9E0ioyzPUw99+vWhIzjPvT2+H18Hnch8ONLRvMA+B4Ht4Qq3nAGODd2Lp+mgKN0RDs5+9yJH7Y3zFfIUNeVQRwQPozMiSIXiXDeo2F7F4ZGTEIWnhVBzbtlV4ng6SQS8TcIpritI/7Y4Jj+IhB/aehDQZjOLRYbBJmH4bWhw8YwNwCF9CWifTpq2TIEydBdEt/lE0e8pzFt0iGeciqXlf7jITcnOxbRYYVuQXodF66ReYahnyzQQBsDgmlJxI+UEQ1fJ5Bo9nzNTn+B3xn9mgz+/kRRQ4PX/MZMpnC6OgYGAP71nyyVcrIeLyYc44wRj6wJ5SsV1Gkvb5NBiBy4qtk6KIvYE+TTPq4T1KIDpqGxg7M0tcjwssOElpjM6M19MhSGb1JBnIH+9DcGCDCuZDkkUIi5MU8GWhozd3sXbVXIt9o4I1emQPPZxPtAouvObA3APfisq/AFKdk6Lpl8GCTuR6So9nz8NoWBApxI/AWygg/2jXHb5Ox3wDYY2Cv9GVO4LAMYBbIoJBsk2EvzwT2RHhVr8yB5cWXmNDFq2RiHOZcHFj/K2Q+EDIPMPytsZViL2Rup6TqaQB5RWuGNpiPQObLl8jq3UGArNEDnpclP1uQwzgEn2duigh6aEAJtCl7eSaTJ8Jv9+peXPbTahoUgouRoZ/daOEKMrRYTmZIY4bGw+B6QENkh5TdWGSuLQsaWPA2LTA/jnUEMgy0lrLIlP+G4Q82qYUMh1ZaPQwsADd2FTS7Hu5YNVbFj7X+N4wWmZ/fYPS3UzIdDwDNjk3G0gur8c3W76wCXQ+PP6I1lkXm+uxsAOba36FgbsZ0/eIk80RKplvPMwx6tMmcoXWWRebypnC+2Z8+XQ8Ihq3pKjKPmJEZ/r3WIWOTOd8gm8MxAcPITBxk/llC5ud7ILP71TKQiYPMg4PMxFrQXNtkSM2au8xvMtrZV8tiB8PBYHAztsgMXjShMbMxeMag/j+05htab9lk0NmGlUED0NBevTBNnmjJZDTDtNWPweAYrbksMnH08RPGZHVL0Nirl6GDzAcrim7GFiEAs+4hY5EZx+GABsrns+PfHKa3E0bG2i5NbGbHP84+vrhMJLGei+AXMpFPZPCz0rez44m1bKF2YmuDtLqGrKKN0meISd9IoHWUTsnolJG11T7+9hNAWEljawKzFbEXOKCNvjinpcS4iNZReTLmaRHZQUPH/9fEXr5MmAHbHnQMiUZJMn0ar+f2qQhk8Izkg+00s+fJgPoJm7cnEEMkuX78OEMa3VMdmuyt1MbOer71L87wbzKRHLbnJ5o1AOlxMiFgJk/kCflfZ9/OyAmEEv7ym4b5qf95Hf9Lmohp0fhkktFpJFLIivivyWS0Qd6lABrQP7M+fvjxU/v2kbLcAU74MGFG4HT9y6yfQ+un+OedGYUx2/ysEzvexH3QdPNha3JDXkDhzafHJ9iDbzz+BfO07bvapw1oNtv5/OXLzhTq1tGA9c+H8AI2B+9hDykZZNQ/H+6ADovfzn6mP+xMZ+RV5OH3MoQLUyRe/7wzhprpeOdzPb6GyfQf6Qe9AHWNwNUAAAAASUVORK5CYII=" alt="ROC Memorials &amp; Monuments" width="146" height="38">
+  <div class="ttl"><span class="eyebrow">Design studio</span><b>Monument Designer</b></div>
+  <div class="sp"></div>
+  <div class="acts">
+    <button class="staff" id="staffBtn" aria-pressed="false" title="ROC staff view: production sheets and routing"><i></i><span>ROC staff</span></button>
+    <button class="btn sm hide-m" id="saveBtn">Save design</button>
+    <button class="btn sm hide-m" id="openBtn">Open</button>
+    <a class="btn sm sitelink" id="siteLink" href="https://rocmemorials.com" target="_top">rocmemorials.com <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h7v7M13 3 4 12"/></svg></a>
+  </div>
+</div></header>
+
+<div class="app">
+  <nav class="rail" id="rail" aria-label="Design steps"></nav>
+  <section class="panel" aria-live="polite">
+    <div class="pbody" id="pbody"></div>
+    <div class="pfoot"><button class="btn" id="prevBtn">Back</button><button class="btn pri" id="nextBtn">Next</button></div>
+  </section>
+  <main class="board">
+    <div class="tools" id="tools"></div>
+    <div class="inspector" id="insp" hidden></div>
+    <div class="stage" id="stage"></div>
+    <div class="specbar" id="specbar"></div>
+  </main>
+</div>
+<input type="file" id="fileOpen" accept="application/json,.json" hidden>
+<input type="file" id="photoIn" accept="image/*" hidden>
+<div id="modalRoot"></div>
+
+<script>
+const GRANITE_ROWS = [
+  ['midnight-black','Midnight Black','black','#121314',['#2a2d30','#050606','#3d4144'],'',3,1,'Fine-grain jet black that takes a mirror polish. The standard stone for laser portraits and full scenes.','fine'],
+  ['academy-black','Academy Black','black','#2a2c2e',['#5a5d60','#111213','#8d9093'],'',2,0,''],
+  ['mesabi-black','Mesabi Black','black','#1d1e1f',['#45484b','#0a0a0b','#62666a'],'Minnesota, USA',3,0,''],
+  ['mesabi-black-select','Mesabi Black Select','black','#161718',['#36393c','#070708','#4f5357'],'Minnesota, USA',4,0,'','fine'],
+  ['black-galaxy','Black Galaxy','black','#141414',['#b8913f','#e2c47c','#2d2d2d'],'India',4,1,'Deep black with metallic bronze flecks that catch the light.'],
+  ['black-pearl','Black Pearl','black','#202224',['#4c5157','#0d0e0f','#71767c'],'',3,0,''],
+  ['ebony-wave','Ebony Wave','black','#262423',['#4d4642','#141312','#71655c'],'',3,0,'','vein'],
+  ['south-african-impala','South African Impala','black','#34383b',['#6d7378','#1b1d1f','#90969b'],'South Africa',2,0,''],
+  ['india-impala','India Impala','black','#2f3235',['#62686d','#17191a','#868c91'],'India',2,0,''],
+  ['barre-gray','Barre Gray','gray','#8b8d8f',['#4f5254','#c9cacb','#2b2d2f'],'Vermont, USA',1,1,'The classic New England memorial granite. Even, fine-grained gray that carves crisply.','fine'],
+  ['imperial-gray','Imperial Gray','gray','#717375',['#3d3f41','#aaacae','#1f2022'],'',1,0,''],
+  ['dark-imperial-gray','Dark Imperial Gray','gray','#4d4f51',['#2a2b2d','#868889','#141516'],'',2,0,''],
+  ['silver-gray','Silver Gray','gray','#9c9d9d',['#5e6061','#d3d4d4','#3a3b3c'],'',1,0,''],
+  ['cloud-gray','Cloud Gray','gray','#aaaba8',['#71736f','#dcdcd9','#4b4c4a'],'',1,0,''],
+  ['india-gray','India Gray','gray','#7e8081',['#45474a','#b7b9ba','#26282a'],'India',1,0,''],
+  ['civil-gray','Civil Gray','gray','#898b8b',['#55585a','#c0c1c1','#323435'],'',1,0,''],
+  ['grey-pearl','Grey Pearl','gray','#6c7076',['#9fb0c2','#3e4247','#c4ccd4'],'',2,0,''],
+  ['silver-cloud','Silver Cloud','gray','#b4b4b1',['#7b7c7a','#e2e2df','#55565',],'',2,0,''],
+  ['blue-pearl','Blue Pearl','blue','#3b434b',['#7f9cb8','#1d2329','#a9bccd'],'Norway',4,1,'Dark blue-gray larvikite with crystals that flash blue in sunlight.'],
+  ['bahama-blue','Bahama Blue','blue','#6a737c',['#3a4451','#a8b3bf','#27303a'],'India',3,1,'Swirling gray-blue with flowing grain. Every slab has its own movement.','vein'],
+  ['himalayan-blue','Himalayan Blue','blue','#5d6670',['#323a44','#97a2ad','#1d232a'],'India',3,0,'','vein'],
+  ['bahia-blue','Bahia Blue','blue','#2a4a86',['#122a5c','#8fa8d6','#eef1f5'],'Brazil',4,0,'Vivid sodalite blue with white veining. A rare statement stone.','vein'],
+  ['azul-macobus','Azul Macobus','blue','#33435f',['#1a2539','#6f86ad','#c9d3e3'],'Brazil',4,0,'','vein'],
+  ['sky-blue','Sky Blue','blue','#7c8c9c',['#4c5c6c','#b5c2cf','#2d3945'],'',2,0,''],
+  ['blue-in-night','Blue In Night','blue','#262c38',['#4d6286','#11151c','#7b8fb3'],'',3,0,''],
+  ['china-blue','China Blue','blue','#566170',['#2f3946','#8e9aa8','#1c232c'],'',2,0,''],
+  ['dakota-mahogany','Dakota Mahogany','red','#6e3d33',['#2a1915','#a77a6b','#141010'],'South Dakota, USA',2,1,'Rich mahogany red with black mineral. A warm, traditional American granite.'],
+  ['india-red','India Red','red','#7d2c27',['#3a1210','#b4574d','#120808'],'India',3,1,'Deep, uniform red that polishes to a bright finish.'],
+  ['missouri-red','Missouri Red','red','#8a4a3c',['#4a2219','#c08470','#1b0e0b'],'Missouri, USA',2,0,''],
+  ['imperial-red','Imperial Red','red','#8c3a33',['#4b1713','#c56a5d','#1a0807'],'',3,0,''],
+  ['autumn-red','Autumn Red','red','#8e4b3e',['#4f2219','#c48676','#21100c'],'',2,0,''],
+  ['royal-carmine','Royal Carmine','red','#7a2630',['#3c0e14','#b45563','#160507'],'',3,0,''],
+  ['mountain-red','Mountain Red','red','#7f4234',['#3f1d15','#b3786a','#170b08'],'',2,0,''],
+  ['canadian-mahogany','Canadian Mahogany','red','#5f3a33',['#2a1714','#94695d','#100807'],'Canada',2,0,''],
+  ['twilight-red','Twilight Red','red','#6a3a3a',['#331717','#9d6a68','#120707'],'',3,0,''],
+  ['salisbury-pink','Salisbury Pink','pink','#b8907f',['#6b5149','#e3cbbf','#2e2522'],'North Carolina, USA',1,0,''],
+  ['autumn-pink','Autumn Pink','pink','#bf9a8a',['#7a5a4e','#ead3c8','#352925'],'',1,0,''],
+  ['imperial-pink','Imperial Pink','pink','#b48475',['#6b463b','#dfb7aa','#2a1b17'],'',2,0,''],
+  ['canadian-pink','Canadian Pink','pink','#c09a8c',['#7b5b50','#ecd5cb','#382b26'],'Canada',1,0,''],
+  ['seashell-pink','Seashell Pink','pink','#cfb0a4',['#8f7166','#f1e2dc','#4a3a34'],'',2,0,''],
+  ['colonial-rose','Colonial Rose','pink','#b27f74',['#6a443b','#dcb2a8','#2a1915'],'',2,0,''],
+  ['paradiso','Paradiso','brown','#5a474d',['#2c2226','#8c7880','#a3615a'],'India',3,1,'Mottled plum-brown with gray and rose tones. Soft and unusual.','vein'],
+  ['rustic-brown','Rustic Brown','brown','#5e4334',['#2c1e17','#94725f','#120c09'],'',2,0,''],
+  ['coffee-brown','Coffee Brown','brown','#4a3429',['#22160f','#7f6253','#0e0906'],'',2,0,''],
+  ['tan-brown','Tan Brown','brown','#5a3b2c',['#24150e','#8f6a55','#0f0805'],'India',2,0,''],
+  ['catseye-brown','Catseye Brown','brown','#6b5444',['#382a20','#a38a76','#17110c'],'',2,0,''],
+  ['emerald-pearl','Emerald Pearl','green','#2c3a33',['#6f9a86','#141c18','#9ac2ae'],'Norway',4,0,'Dark green larvikite with a green-blue shimmer.'],
+  ['laurentian-green','Laurentian Green','green','#3e4a3c',['#1d251c','#71806e','#a7b2a3'],'Canada',3,0,''],
+  ['hassan-green','Hassan Green','green','#2f3d33',['#151d17','#5d7364','#8ba393'],'India',3,0,''],
+  ['royal-emerald','Royal Emerald','green','#264536',['#0f2219','#5a8b72','#94bfa8'],'',4,0,''],
+  ['olive-green','Olive Green','green','#55573e',['#2b2c1d','#878a69','#151610'],'',2,0,''],
+  ['tropical-green','Tropical Green','green','#3b4a3c',['#1a231b','#6d806e','#c2c9b8'],'',3,0,'','vein'],
+  ['bethel-white','Bethel White','white','#d8d6d2',['#a5a3a0','#f3f2ef','#6f6d6b'],'Vermont, USA',3,0,'Bright white granite with fine gray speckle. Calm and luminous.','fine'],
+  ['moon-white','Moon White','white','#d4d2cc',['#9c9a94','#f1f0ec','#64625e'],'',2,0,''],
+  ['pearl-white','Pearl White','white','#d6d3cd',['#a3a09a','#f3f1ed','#6b6863'],'',2,0,''],
+  ['jasmine-white','Jasmine White','white','#cec8bf',['#958e84','#ece8e2','#5f5951'],'',2,0,''],
+  ['viscount-white','Viscount White','white','#c9c7c2',['#3b3b3a','#efeeec','#8d8b88'],'India',3,0,'White ground with flowing charcoal waves.','vein'],
+  ['white-marble','White Marble','specialty','#e6e3de',['#b9b5af','#f7f6f3','#8c8781'],'',3,0,'Marble is softer than granite. ROC will advise on durability for your setting.','vein'],
+  ['rainbow','Rainbow','specialty','#8a6a52',['#3c2b20','#c9a27f','#6e4f63'],'India',3,0,'','vein'],
+  ['fire-flame','Fire Flame','specialty','#8c4b2e',['#3d1d0f','#d08a55','#1c0d06'],'',3,0,'','vein'],
+  ['wave-sand','Wave Sand','specialty','#c2a77f',['#8e7350','#e4d3b4','#6a5236'],'',2,0,'Sandstone with layered waves of tan. Softer than granite.','vein']
+];
+
+const FAMILY = {
+  black:{label:'Black',tier:2,desc:'Dark, high-contrast stone. Lettering and etched images read clearly from a distance.',best:['Laser portraits','Etched scenes','Frosted lettering']},
+  gray:{label:'Gray',tier:1,desc:'Traditional and even-toned. Carved letters and sandblasted designs stay crisp for generations.',best:['Deep-carved lettering','Sandblast artwork','Matching existing family stones']},
+  blue:{label:'Blue',tier:3,desc:'Cool tones with movement or shimmer. Distinctive without being loud.',best:['Polished contemporary designs','Sandblast artwork','Companion memorials']},
+  red:{label:'Red',tier:2,desc:'Warm reds and mahoganies that polish to a rich, bright finish.',best:['Sandblast artwork','Frosted lettering','Traditional uprights']},
+  pink:{label:'Pink',tier:1,desc:'Soft, warm stones with gentle speckle.',best:['Carved floral designs','Lithochrome lettering','Garden and pet memorials']},
+  brown:{label:'Brown',tier:2,desc:'Earthy tones that sit naturally in rural and wooded cemeteries.',best:['Nature and farm themes','Rock-pitch edges','Benches']},
+  green:{label:'Green',tier:3,desc:'Deep forest tones, some with a green-blue shimmer.',best:['Nature themes','Polished uprights','Statement pieces']},
+  white:{label:'White',tier:3,desc:'Light stone that reads as calm and bright. Dark lettering gives the best legibility.',best:['Lithochrome black lettering','Carved relief','Children’s memorials']},
+  specialty:{label:'Specialty',tier:3,desc:'Unusual stones and non-granite materials. ROC will advise on weathering.',best:['Accent pieces','Garden memorials','Custom work']}
+};
+
+function hexToRgb(h){h=h.replace('#','');if(h.length<6)h=h.padEnd(6,'0');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+function lumOf(hex){const[r,g,b]=hexToRgb(hex).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*r+.7152*g+.0722*b}
+
+const GRANITES = GRANITE_ROWS.map(r=>{
+  const [id,name,family,base,grains,origin,tier,popular,desc,flags=''] = r;
+  const grainsClean = grains.map(c=>/^#[0-9a-f]{6}$/i.test(c)?c:base);
+  const L = lumOf(base);
+  return {id,name,family,base,grains:grainsClean,origin:origin||'Ask ROC',tier:tier||FAMILY[family].tier,popular:!!popular,
+    desc:desc||FAMILY[family].desc,best:FAMILY[family].best,fine:flags.includes('fine'),vein:flags.includes('vein'),
+    lum:L,dark:L<0.09,contrast:L<0.06?'High':L<0.2?'Medium':'Best with dark lettering',
+    laser:L<0.03?'Excellent':L<0.07?'Good':'Not recommended'};
+});
+const GMAP = Object.fromEntries(GRANITES.map(g=>[g.id,g]));
+
+function star(cx,cy,R,r,n=5,rot=-90){let p=[];for(let i=0;i<n*2;i++){const a=(rot+i*180/n)*Math.PI/180,rr=i%2?r:R;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1))}return p.join(' ')}
+function petals(cx,cy,n,rx,ry,off){let s='';for(let i=0;i<n;i++)s+=`<ellipse cx="${cx}" cy="${cy-off}" rx="${rx}" ry="${ry}" transform="rotate(${i*360/n} ${cx} ${cy})"/>`;return s}
+const HEART='M50 90C20 66 6 49 6 31C6 16 18 7 31 7C41 7 47 13 50 21C53 13 59 7 69 7C82 7 94 16 94 31C94 49 80 66 50 90Z';
+const SW='fill="none" stroke="currentColor"';
+const ROSE=`<path d="M50 30c10-2 18 5 17 14-1 10-10 16-18 15-9-1-15-8-13-16 2-7 8-10 14-9 6 1 8 7 6 11-2 4-7 4-9 2" ${SW} stroke-width="3.2" stroke-linecap="round"/><path d="M33 40c-6 8-4 22 8 28M67 40c6 8 4 22-8 28" ${SW} stroke-width="3"/><path d="M50 69v26" ${SW} stroke-width="3"/><path d="M50 82c-8-6-18-6-24-1 8 6 17 6 24 1zM50 76c8-6 18-6 24-1-8 6-17 6-24 1z"/>`;
+
+const ART_ROWS = [
+  // id, name, category, tags, svg, [vb]
+  ['CR-01','Latin cross','Faith','cross christian religious',`<rect x="43" y="6" width="14" height="88" rx="1"/><rect x="20" y="26" width="60" height="13" rx="1"/>`],
+  ['CR-02','Celtic cross','Faith','cross celtic irish christian',`<rect x="44" y="4" width="12" height="92"/><rect x="18" y="30" width="64" height="12"/><circle cx="50" cy="36" r="19" ${SW} stroke-width="5"/>`],
+  ['CR-03','Radiant cross','Faith','cross rays light catholic',`<rect x="45" y="12" width="10" height="80"/><rect x="28" y="30" width="44" height="10"/><g stroke="currentColor" stroke-width="2">${[...Array(12)].map((_,i)=>{const a=i*30*Math.PI/180;return`<line x1="${50+20*Math.cos(a)}" y1="${35+20*Math.sin(a)}" x2="${50+34*Math.cos(a)}" y2="${35+34*Math.sin(a)}"/>`}).join('')}</g>`],
+  ['CR-04','Cross with lilies','Faith','cross lily easter flowers',`<rect x="45" y="6" width="10" height="70"/><rect x="30" y="22" width="40" height="9"/><path d="M28 94c4-14 10-22 20-24M72 94c-4-14-10-22-20-24" ${SW} stroke-width="3"/><path d="M22 70c4-10 14-12 18-6-6 2-10 6-12 12zM78 70c-4-10-14-12-18-6 6 2 10 6 12 12z"/>`],
+  ['AN-01','Dove of peace','Faith','dove bird peace spirit',`<path d="M8 56C24 42 40 40 54 44L74 26C78 22 85 22 89 26L81 33C89 34 94 31 97 29C93 39 85 43 77 45C70 62 52 72 32 70L17 82L21 67C14 65 8 61 8 56Z"/><path d="M44 45C38 26 44 12 60 7C57 22 62 34 70 41Z" opacity=".8"/>`],
+  ['FA-01','Star of David','Faith','jewish star david',`<polygon points="50,6 88,72 12,72" ${SW} stroke-width="6" stroke-linejoin="round"/><polygon points="50,94 12,28 88,28" ${SW} stroke-width="6" stroke-linejoin="round"/>`],
+  ['FA-02','Crescent and star','Faith','muslim islam crescent moon star',`<path d="M60 12A40 40 0 1 0 60 88A32 32 0 1 1 60 12Z"/><polygon points="${star(70,50,13,5.5)}"/>`],
+  ['FA-03','Dharma wheel','Faith','buddhist wheel dharma',`<circle cx="50" cy="50" r="36" ${SW} stroke-width="6"/><circle cx="50" cy="50" r="9"/>${[...Array(8)].map((_,i)=>`<rect x="48" y="12" width="4" height="38" transform="rotate(${i*45} 50 50)"/>`).join('')}`],
+  ['FA-04','Praying angel wings','Faith','angel wings heaven',`<path d="M48 30C30 18 10 22 4 40c10-4 18-2 22 2-10 0-17 5-20 12 9-4 17-3 22 0-8 2-13 8-14 14 12-6 24-6 34-12z"/><path d="M52 30C70 18 90 22 96 40c-10-4-18-2-22 2 10 0 17 5 20 12-9-4-17-3-22 0 8 2 13 8 14 14-12-6-24-6-34-12z"/>`],
+  ['FL-01','Single rose','Flowers','rose flower love',ROSE],
+  ['FL-02','Rose spray','Flowers','rose roses spray flowers corner',`<g transform="translate(-6 4) scale(.62)">${ROSE}</g><g transform="translate(36 -4) scale(.62)">${ROSE}</g><g transform="translate(18 34) scale(.6)">${ROSE}</g><path d="M14 74c10-2 18 2 22 10-10 2-18-2-22-10zM86 62c-10-2-18 2-22 10 10 2 18-2 22-10z"/>`],
+  ['FL-03','Calla lily','Flowers','lily calla flower',`<path d="M50 8c16 10 20 30 10 44-6 8-16 10-22 4C30 46 36 22 50 8z"/><path d="M48 54c-2 14-2 28 2 40" ${SW} stroke-width="3.4"/><path d="M50 78c-14-4-24-14-26-28 14 4 22 14 26 28z"/>`],
+  ['FL-04','Dogwood blossom','Flowers','dogwood flower blossom spring',`${petals(50,50,4,13,20,22)}<circle cx="50" cy="50" r="8" fill="none" stroke="currentColor" stroke-width="3"/>`],
+  ['FL-05','Daisy','Flowers','daisy flower simple',`${petals(50,50,12,6,17,22)}<circle cx="50" cy="50" r="10"/>`],
+  ['FL-06','Ivy vine','Flowers','ivy vine leaves border',`<path d="M4 70C30 50 60 82 96 40" ${SW} stroke-width="3"/>${[[16,58],[34,60],[52,66],[70,58],[86,46]].map(([x,y],i)=>`<path d="M${x} ${y}c-6-8-2-16 6-16 2 8-2 14-6 16z" transform="rotate(${i%2?40:-30} ${x} ${y})"/>`).join('')}`],
+  ['FL-07','Tulip','Flowers','tulip flower spring',`<path d="M32 18c0 22 6 34 18 34s18-12 18-34l-9 10-9-14-9 14z"/><path d="M50 52v42" ${SW} stroke-width="3.4"/><path d="M50 84c-12-2-22-12-24-26 12 2 20 12 24 26z"/>`],
+  ['NA-01','Mountain range','Nature','mountains peaks hiking adirondacks',`<polygon points="2,88 34,30 56,62 70,42 98,88"/><polygon points="34,30 27,43 34,40 40,44" opacity=".35"/><polygon points="70,42 64,52 71,50 76,54" opacity=".35"/>`],
+  ['NA-02','Pine trees','Nature','pine trees forest woods hunting',`${[[30,10,26],[60,22,22],[80,34,16]].map(([x,y,s])=>`<polygon points="${x},${y} ${x-s},${y+s*1.4} ${x-s*.5},${y+s*1.4} ${x-s*1.1},${y+s*2.5} ${x+s*1.1},${y+s*2.5} ${x+s*.5},${y+s*1.4} ${x+s},${y+s*1.4}"/><rect x="${x-3}" y="${y+s*2.5}" width="6" height="${s*.6}"/>`).join('')}`],
+  ['NA-03','Oak tree','Nature','tree oak family tree life',`<path d="M46 94l2-34-14-12 16 6 2-14 2 14 14-8-14 16 2 32z"/><path d="M50 8c14 0 22 8 22 16 10 0 18 8 16 18-2 10-12 14-22 12-6 6-26 6-32 0-10 2-20-2-22-12-2-10 6-18 16-18 0-8 8-16 22-16z" opacity=".9"/>`],
+  ['NA-04','Sunset over the lake','Nature','sunset lake water sun evening',`<path d="M22 56a28 28 0 0 1 56 0z"/>${[...Array(7)].map((_,i)=>{const a=(180+i*30)*Math.PI/180;return`<line x1="${50+34*Math.cos(a)}" y1="${56+34*Math.sin(a)}" x2="${50+44*Math.cos(a)}" y2="${56+44*Math.sin(a)}" stroke="currentColor" stroke-width="3"/>`}).join('')}<g ${SW} stroke-width="3"><path d="M8 66h84M18 76h64M30 86h40"/></g>`],
+  ['NA-05','Lighthouse','Nature','lighthouse lake ontario coast sea',`<polygon points="42,30 58,30 64,88 36,88"/><rect x="40" y="18" width="20" height="12" opacity=".6"/><polygon points="38,18 50,6 62,18"/><g stroke="currentColor" stroke-width="2.5"><line x1="62" y1="24" x2="94" y2="16"/><line x1="62" y1="24" x2="94" y2="32"/><line x1="38" y1="24" x2="6" y2="16"/><line x1="38" y1="24" x2="6" y2="32"/></g><path d="M20 94c10-8 50-8 60 0z"/>`],
+  ['NA-06','Cabin in the pines','Nature','cabin camp woods house home',`<polygon points="22,58 50,34 78,58"/><rect x="28" y="56" width="44" height="32"/><rect x="45" y="68" width="10" height="20" opacity=".35"/><polygon points="88,40 80,62 96,62"/><polygon points="88,52 78,80 98,80"/><polygon points="10,50 4,70 16,70"/><polygon points="10,60 2,84 18,84"/>`],
+  ['NA-07','Wheat sheaf','Nature','wheat farm harvest grain farmer',`${[-18,-9,0,9,18].map(a=>`<g transform="rotate(${a} 50 92)"><line x1="50" y1="92" x2="50" y2="22" stroke="currentColor" stroke-width="2.5"/>${[0,1,2,3,4].map(j=>`<ellipse cx="46" cy="${26+j*7}" rx="3.2" ry="5.5" transform="rotate(-25 46 ${26+j*7})"/><ellipse cx="54" cy="${26+j*7}" rx="3.2" ry="5.5" transform="rotate(25 54 ${26+j*7})"/>`).join('')}</g>`).join('')}<rect x="38" y="66" width="24" height="6" rx="2"/>`],
+  ['NA-08','Butterfly','Nature','butterfly garden child spring',`<ellipse cx="32" cy="36" rx="20" ry="24" transform="rotate(-25 32 36)"/><ellipse cx="68" cy="36" rx="20" ry="24" transform="rotate(25 68 36)"/><ellipse cx="36" cy="70" rx="13" ry="16" transform="rotate(20 36 70)" opacity=".8"/><ellipse cx="64" cy="70" rx="13" ry="16" transform="rotate(-20 64 70)" opacity=".8"/><rect x="47" y="24" width="6" height="58" rx="3"/><path d="M48 24c-4-10-10-14-16-14M52 24c4-10 10-14 16-14" ${SW} stroke-width="2"/>`],
+  ['NA-09','Cardinal','Nature','cardinal bird visitor red bird',`<path d="M20 60c4-20 22-34 40-30l8-16 4 14c8 2 14 8 16 14l-12 2c4 12 0 26-14 32l8 18-14-14C38 84 18 80 20 60z"/><circle cx="72" cy="34" r="3" fill="var(--hole,#000)" opacity=".5"/><path d="M14 64C2 70 0 84 2 92 12 84 18 76 22 70z"/>`],
+  ['NA-10','Sun and moon','Nature','sun moon stars night sky',`<path d="M66 14A30 30 0 1 0 66 86A24 24 0 1 1 66 14Z"/><polygon points="${star(78,34,8,3.4)}"/><polygon points="${star(86,62,6,2.6)}"/>`],
+  ['HO-01','Leaping bass','Hobbies','fish fishing bass angler gone fishing',`<path d="M10 62C26 34 60 26 80 40l14-14-4 22 8 18-18-10C64 76 30 82 10 62z"/><circle cx="24" cy="54" r="3" opacity=".35"/><path d="M44 36l8-14 10 16z"/><g ${SW} stroke-width="2" opacity=".6"><path d="M4 86c12-6 22-6 34 0s22 6 34 0"/></g>`],
+  ['HO-02','Hook and line','Hobbies','fishing hook line fisherman',`<path d="M50 4v58c0 18-26 18-26 0" ${SW} stroke-width="5" stroke-linecap="round"/><polygon points="24,62 18,50 30,54"/><circle cx="50" cy="6" r="4"/><path d="M60 88c8-10 22-10 30 0" ${SW} stroke-width="3"/>`],
+  ['HO-03','Whitetail buck','Hobbies','deer buck hunting hunter whitetail',`<path d="M38 50c0-8 6-14 12-14s12 6 12 14l-3 20-9 10-9-10z"/><path d="M38 52l-10-6 8 0zM62 52l10-6-8 0z"/><g ${SW} stroke-width="3.2" stroke-linecap="round"><path d="M44 38C36 30 30 16 34 4M38 26c-6-2-10-6-12-12M36 16c-4-2-6-6-6-10"/><path d="M56 38c8-8 14-22 10-34M62 26c6-2 10-6 12-12M64 16c4-2 6-6 6-10"/></g><path d="M40 82h20l-4 14h-12z" opacity=".7"/>`],
+  ['HO-04','Farm tractor','Hobbies','tractor farm farmer agriculture',`<circle cx="70" cy="66" r="22"/><circle cx="70" cy="66" r="9" opacity=".3" fill="#000"/><circle cx="22" cy="76" r="12"/><rect x="18" y="46" width="44" height="18"/><rect x="50" y="20" width="28" height="30" opacity=".85"/><rect x="28" y="30" width="5" height="16"/>`],
+  ['HO-05','Classic car','Hobbies','car classic automotive hot rod',`<path d="M4 66c0-10 8-14 18-16l14-14h30l14 14c10 2 16 6 16 16v6H4z"/><path d="M40 40h11v12H30zM56 40h10l10 12H56z" opacity=".35" fill="#000"/><circle cx="26" cy="74" r="10"/><circle cx="76" cy="74" r="10"/>`],
+  ['HO-06','Motorcycle','Hobbies','motorcycle harley biker ride',`<circle cx="20" cy="70" r="16" ${SW} stroke-width="6"/><circle cx="80" cy="70" r="16" ${SW} stroke-width="6"/><path d="M20 70l18-24h22l20 24M44 46l-8-12h-8M62 46l6-14h10" ${SW} stroke-width="5" stroke-linejoin="round"/><path d="M36 42h28l-4 12H40z"/>`],
+  ['HO-07','Acoustic guitar','Hobbies','guitar music musician',`<rect x="47" y="4" width="6" height="52"/><rect x="44" y="2" width="12" height="10" rx="2"/><path d="M50 46c14 0 18 8 16 16 8 4 10 12 8 20-4 12-20 14-24 14s-20-2-24-14c-2-8 0-16 8-20-2-8 2-16 16-16z"/><circle cx="50" cy="66" r="6" opacity=".35" fill="#000"/>`],
+  ['HO-08','Music notes','Hobbies','music notes song singer choir',`<rect x="32" y="16" width="5" height="58"/><rect x="72" y="8" width="5" height="58"/><polygon points="32,16 77,8 77,20 32,28"/><ellipse cx="26" cy="76" rx="11" ry="8" transform="rotate(-20 26 76)"/><ellipse cx="66" cy="68" rx="11" ry="8" transform="rotate(-20 66 68)"/>`],
+  ['HO-09','Golf flag','Hobbies','golf golfer course',`<rect x="46" y="8" width="4" height="74"/><polygon points="50,8 84,20 50,32"/><ellipse cx="48" cy="84" rx="30" ry="7" opacity=".5"/><circle cx="68" cy="78" r="5"/>`],
+  ['HO-10','Football','Hobbies','football sports bills',`<ellipse cx="50" cy="50" rx="42" ry="24" transform="rotate(-25 50 50)"/><g stroke="#000" opacity=".45" stroke-width="3"><line x1="36" y1="57" x2="64" y2="43"/>${[0,1,2,3].map(i=>`<line x1="${42+i*6}" y1="${50-i*3-4}" x2="${46+i*6}" y2="${58-i*3}"/>`).join('')}</g>`],
+  ['HO-11','Baseball','Hobbies','baseball softball sports',`<circle cx="50" cy="50" r="40"/><g ${SW} stroke="#000" opacity=".45" stroke-width="3"><path d="M24 20c12 18 12 42 0 60M76 20c-12 18-12 42 0 60"/></g>`],
+  ['HO-12','Sailboat','Hobbies','sailboat boat sailing lake water',`<polygon points="52,6 52,70 86,70"/><polygon points="48,16 48,70 18,70"/><path d="M10 74h80l-10 12H20z"/><path d="M4 94c12-6 22-6 34 0s22 6 34 0 18-4 24-2" ${SW} stroke-width="3"/>`],
+  ['HO-13','Fishing boat','Hobbies','boat fishing lake bass boat',`<path d="M6 60h88l-12 20H20z"/><rect x="40" y="40" width="22" height="20"/><path d="M64 40L84 14" ${SW} stroke-width="3"/><path d="M84 14q6 30-2 44" ${SW} stroke-width="1.5"/><path d="M4 90c12-6 22-6 34 0s22 6 34 0 18-4 24-2" ${SW} stroke-width="3"/>`],
+  ['SV-01','American flag','Service','flag american patriotic usa veteran',`<path d="M10 14c24-8 46 8 80 0v52c-34 8-56-8-80 0z"/><rect x="6" y="10" width="4" height="86"/><g stroke="#000" opacity=".4" stroke-width="3">${[0,1,2,3].map(i=>`<path d="M38 ${30+i*9}c18 4 34 2 52-2" fill="none"/>`).join('')}</g><rect x="10" y="14" width="28" height="22" opacity=".55" fill="#000"/>`],
+  ['SV-02','Star in circle','Service','star military army service veteran',`<circle cx="50" cy="50" r="44" ${SW} stroke-width="5"/><polygon points="${star(50,52,36,14)}"/>`],
+  ['SV-03','Anchor','Service','anchor navy sailor coast guard marine',`<circle cx="50" cy="14" r="8" ${SW} stroke-width="5"/><rect x="46" y="22" width="8" height="64"/><rect x="28" y="30" width="44" height="7" rx="2"/><path d="M14 58c4 24 20 32 36 32s32-8 36-32" ${SW} stroke-width="7" stroke-linecap="round"/><polygon points="14,50 6,64 22,62"/><polygon points="86,50 94,64 78,62"/>`],
+  ['SV-04','Firefighter cross','Service','firefighter fire department maltese',`<path d="M50 50L36 8h28zM50 50L92 36v28zM50 50L64 92H36zM50 50L8 64V36z"/><circle cx="50" cy="50" r="15"/><circle cx="50" cy="50" r="9" opacity=".35" fill="#000"/>`],
+  ['SV-05','Police shield','Service','police officer law enforcement badge sheriff',`<path d="M50 4l38 12v26c0 26-16 44-38 54C28 86 12 68 12 42V16z"/><polygon points="${star(50,46,22,9)}" fill="#000" opacity=".35"/>`],
+  ['SV-06','Star of Life','Service','ems paramedic emt medical nurse',`${[0,60,120].map(a=>`<rect x="40" y="6" width="20" height="88" rx="2" transform="rotate(${a} 50 50)"/>`).join('')}<path d="M50 20v60M44 32c8 4 8 10 0 14s-8 10 0 14 8 10 0 14" ${SW} stroke="#000" opacity=".45" stroke-width="3"/>`],
+  ['SV-07','Dog tags','Service','dog tags military veteran soldier',`<rect x="18" y="30" width="34" height="54" rx="10" transform="rotate(-10 35 57)"/><rect x="46" y="34" width="34" height="54" rx="10" transform="rotate(8 63 61)" opacity=".8"/><path d="M30 30C34 10 66 6 66 34" ${SW} stroke-width="2.4" stroke-dasharray="2 3"/>`],
+  ['SV-08','Eagle wings','Service','eagle wings patriotic air force',`<path d="M50 40C36 22 14 18 2 24c10 2 16 6 20 10-8-2-14 0-18 4 10 0 16 4 20 8-6 0-10 2-12 6 12-2 26 0 38-4z"/><path d="M50 40c14-18 36-22 48-16-10 2-16 6-20 10 8-2 14 0 18 4-10 0-16 4-20 8 6 0 10 2 12 6-12-2-26 0-38-4z"/><circle cx="50" cy="42" r="8"/><polygon points="${star(50,72,14,5.6)}"/>`],
+  ['LV-01','Heart','Family','heart love',`<path d="${HEART}"/>`],
+  ['LV-02','Entwined hearts','Family','hearts love couple spouses marriage',`<path d="${HEART}" transform="translate(-14 4) scale(.72)" ${SW} stroke-width="8"/><path d="${HEART}" transform="translate(42 4) scale(.72)" ${SW} stroke-width="8"/>`],
+  ['LV-03','Wedding rings','Family','rings wedding marriage anniversary spouses',`<circle cx="38" cy="56" r="24" ${SW} stroke-width="7"/><circle cx="62" cy="48" r="24" ${SW} stroke-width="7"/><polygon points="62,14 68,22 62,26 56,22"/>`],
+  ['LV-04','Infinity','Family','infinity forever eternal love',`<path d="M50 50c-10-16-36-20-38 0s28 16 38 0 36-20 38 0-28 16-38 0z" ${SW} stroke-width="8"/>`],
+  ['LV-05','Paw print','Family','paw pet dog cat animal',`<ellipse cx="50" cy="66" rx="22" ry="18"/><ellipse cx="22" cy="40" rx="9" ry="12" transform="rotate(-20 22 40)"/><ellipse cx="40" cy="22" rx="9" ry="12"/><ellipse cx="60" cy="22" rx="9" ry="12"/><ellipse cx="78" cy="40" rx="9" ry="12" transform="rotate(20 78 40)"/>`],
+  ['LV-06','Family tree','Family','family tree roots generations',`<path d="M46 94l2-38-16-14 18 8 2-20 2 20 18-10-16 16 2 38z"/>${[[24,30],[40,16],[60,16],[76,30],[30,48],[70,48],[50,8]].map(([x,y])=>`<path d="${HEART}" transform="translate(${x-7} ${y-7}) scale(.14)"/>`).join('')}`],
+  ['LV-07','Teddy bear','Family','teddy bear baby child infant',`<circle cx="50" cy="30" r="18"/><circle cx="34" cy="16" r="8"/><circle cx="66" cy="16" r="8"/><ellipse cx="50" cy="68" rx="24" ry="26"/><circle cx="26" cy="58" r="8"/><circle cx="74" cy="58" r="8"/><circle cx="34" cy="90" r="9"/><circle cx="66" cy="90" r="9"/>`],
+  ['BD-01','Laurel wreath','Borders','laurel wreath honor border',`${[...Array(9)].map((_,i)=>{const a=(120+i*13)*Math.PI/180;const x=50+38*Math.cos(a),y=50+38*Math.sin(a);return`<ellipse cx="${x}" cy="${y}" rx="4" ry="9" transform="rotate(${120+i*13+90-25} ${x} ${y})"/>`}).join('')}${[...Array(9)].map((_,i)=>{const a=(60-i*13)*Math.PI/180;const x=50+38*Math.cos(a),y=50+38*Math.sin(a);return`<ellipse cx="${x}" cy="${y}" rx="4" ry="9" transform="rotate(${60-i*13+90+25} ${x} ${y})"/>`}).join('')}`],
+  ['BD-02','Ribbon banner','Borders','ribbon banner scroll',`<path d="M14 36h72v26H14z"/><path d="M14 44H2l8 10-8 10h18v-2H14zM86 44h12l-8 10 8 10H80v-2h6z" opacity=".75"/>`,'0 20 100 56'],
+  ['BD-03','Divider','Borders','divider line ornament',`<rect x="4" y="48" width="36" height="3"/><rect x="60" y="48" width="36" height="3"/><polygon points="50,40 58,50 50,60 42,50"/>`,'0 36 100 28'],
+  ['SC-01','Mountain lake scene','Scenes','scene landscape mountains lake trees',`<polygon points="0,62 30,18 50,44 66,28 100,62"/><g opacity=".55"><polygon points="0,66 30,96 50,74 66,88 100,66"/></g><g>${[[8,46],[16,50],[88,48],[94,52]].map(([x,y])=>`<polygon points="${x},${y-14} ${x-6},${y+4} ${x+6},${y+4}"/>`).join('')}</g><path d="M0 64h100" stroke="currentColor" stroke-width="1.5"/>`,'0 10 100 90'],
+  ['SC-02','Farm scene','Scenes','scene farm barn field tractor silo',`<polygon points="14,48 30,34 46,48"/><rect x="16" y="48" width="28" height="22"/><rect x="48" y="30" width="12" height="40" rx="6"/><g ${SW} stroke-width="2">${[0,1,2,3,4].map(i=>`<path d="M${60+i*2} ${74+i*4}Q${80} ${70+i*4} 100 ${72+i*4}"/>`).join('')}<path d="M0 70h100"/></g><circle cx="84" cy="22" r="8"/>`,'0 10 100 80'],
+  ['SC-03','Lake sunset scene','Scenes','scene sunset water lake boat dock',`<path d="M30 50a20 20 0 0 1 40 0z"/><g ${SW} stroke-width="2"><path d="M0 52h100M10 60h80M22 68h56M34 76h32"/></g><polygon points="70,46 70,30 80,46"/><path d="M62 47h22l-3 4h-16z"/>`,'0 20 100 66']
+];
+const ART = ART_ROWS.map(([id,name,cat,tags,svg,vb])=>({id,name,cat,tags,svg,vb:vb||'0 0 100 100'}));
+ART.forEach(a=>{const v=a.vb.split(' ').map(Number);a.vw=v[2];a.vh=v[3];a.vx=v[0];a.vy=v[1]});
+const AMAP = Object.fromEntries(ART.map(a=>[a.id,a]));
+const ART_CATS = [...new Set(ART.map(a=>a.cat))];
+
+</script>
+<script>
+/* ============================================================
+   ROC MONUMENT DESIGNER — configuration
+   Edit CFG to go live. Everything else reads from it.
+   ============================================================ */
+const CFG = {
+  brand:'ROC Memorials & Monuments',
+  phone:'(585) 766-7446',
+  email:'info@rocmemorials.com',
+  address:'1241 Hilton Parma Corners Rd., Hilton, NY 14468',
+  SITE_URL:'https://rocmemorials.com',
+  // GoHighLevel inbound webhook. Posts the full design, PDF and preview image when a design is sent.
+  GHL_WEBHOOK_URL:'',
+  // Weight factor used on supplier sheets (lb per cubic foot). 200 matches MonuVision/MonumentPro readouts.
+  DENSITY_LB_FT3:200,
+  // 'range' shows a sample estimate to families · 'staff' shows it only in staff view · 'off' hides it
+  PRICING_MODE:'range',
+  // Optional PIN for the staff toggle. Leave '' for no PIN.
+  STAFF_PIN:'',
+  // Production routing. Replace emails with ROC's real supplier, stencil room and laser artist.
+  PRODUCTION:[
+    {id:'granite',role:'Granite supplier',who:'Quarry / blank manufacturer',email:'orders@granite-supplier.example',sheets:'Granite order + shop drawing'},
+    {id:'letter',role:'Lettering & stencil',who:'ROC shop · sandblast room',email:'info@rocmemorials.com',sheets:'Lettering layout + carving schedule'},
+    {id:'laser',role:'Laser etching',who:'Laser etching artist',email:'laser@etching-partner.example',sheets:'Laser sheet + source photos'}
+  ]
+};
+
+/* ---------- memorial types (inches) ---------- */
+const TYPES = {
+  upright:{label:'Upright',blurb:'Tablet on a base. Most room for names and art.',base:true,
+    shapes:['serpentine','straight','halfround','oval','gothic','temple','book','heart','doubleheart','cross'],
+    sizes:[['Single · 24″',24,6,20,36,12,6],['Single · 28″',28,6,22,40,12,6],['Single · 32″',32,8,24,44,14,8],['Companion · 36″',36,8,24,48,14,8],['Companion · 42″',42,8,28,54,14,8],['Companion · 48″',48,8,30,60,16,8]]},
+  slant:{label:'Slant',blurb:'Angled face, low profile. Easy to read at the grave.',base:true,
+    shapes:['straight','serpentine','halfround'],
+    sizes:[['Slant · 20″',20,10,16,30,14,6],['Slant · 24″',24,10,16,36,14,6],['Slant · 36″',36,12,18,48,16,8]]},
+  bevel:{label:'Bevel marker',blurb:'Raised marker, sloped edge. For lawn sections.',base:false,
+    shapes:['straight','rounded'],sizes:[['Bevel · 20×10',20,6,10],['Bevel · 24×12',24,6,12],['Bevel · 36×14',36,6,14],['Bevel · 44×14',44,8,14]]},
+  flat:{label:'Flat marker',blurb:'Flush with the lawn so mowers pass over.',base:false,
+    shapes:['straight','rounded'],sizes:[['Flat · 16×8',16,4,8],['Flat · 24×12',24,4,12],['Flat · 36×14',36,4,14],['Flat · 44×14',44,4,14]]},
+  cremation:{label:'Cremation',blurb:'Upright with a sealed urn compartment.',base:true,
+    shapes:['straight','serpentine','halfround','gothic','heart','book'],sizes:[['Single · 24″',24,8,24,36,16,8],['Companion · 30″',30,10,28,42,18,8]]},
+  pet:{label:'Pet memorial',blurb:'Garden-size stone for a beloved animal.',base:false,
+    shapes:['rounded','heart','oval','halfround','straight'],sizes:[['Pet · 12×10',12,4,10],['Pet · 16×12',16,4,12],['Pet · 20×14',20,6,14]]}
+};
+const SHAPES = {serpentine:'Serpentine',straight:'Straight',halfround:'Half round',oval:'Oval',gothic:'Gothic',temple:'Temple',book:'Open book',heart:'Heart',doubleheart:'Double heart',cross:'Cross',rounded:'Rounded'};
+
+/* Industry finish codes. Shown with plain descriptions so a supplier and a family both understand them. */
+const TAB_FIN = [
+  ['P1','P1','Polished face only, balance rock pitch'],
+  ['P2','P2','Polished front & back, balance rock pitch'],
+  ['P3','P3','Polished front, back & top, rock pitch ends'],
+  ['P5','P5','Polished all five sides'],
+  ['PFS','PF sawn','Polished face, balance sawn'],
+  ['ST','Steeled','Steeled (hammered) all sides'],
+  ['HON','Honed','Honed satin all sides']
+];
+const BASE_FIN = [
+  ['PT','PT','Polished top, balance rock pitch'],
+  ['PM2','PM 2″','Polished top & 2″ margin, balance rock pitch'],
+  ['PM4','PM 4″','Polished top & 4″ margin, balance rock pitch'],
+  ['P5','P5','Polished all five sides'],
+  ['RP','RP','Rock pitch, sawn top'],
+  ['SAWN','Sawn','Sawn all over']
+];
+const FINDESC = Object.fromEntries([...TAB_FIN,...BASE_FIN].map(f=>[f[0],f[2]]));
+
+const CUTS = [
+  ['vcut','V-cut','Hand-look chiseled letters'],
+  ['flat','Flat frost','Sandblasted, flat bottom'],
+  ['shape','Shape carve','Sculpted depth for art'],
+  ['polish','Polished on steeled','Polished letters, frosted panel'],
+  ['laser','Laser etched','Fine etch on black granite'],
+  ['raised','Raised','Letters stand in relief']
+];
+const CUTMAP = Object.fromEntries(CUTS.map(c=>[c[0],c[1]]));
+const SINK = [
+  ['auto','Auto','#000'],['frost','Natural frost','#cfcbc3'],['black','Black','#151515'],['gray','Gray','#7f8388'],
+  ['white','White','#f3f1ec'],['gold','Gold leaf','#caa24b'],['bronze','Bronze','#8a6a3c']
+];
+const ART_METHODS = [['blast','Sandblast'],['shape','Shape carve'],['laser','Laser etch'],['hand','Hand etched']];
+const PHOTO_SIZES = [['Oval 3×4',3,4,'oval'],['Oval 4×5',4,5,'oval'],['Oval 5×7',5,7,'oval'],['Rect 4×5',4,5,'rect'],['Rect 5×7',5,7,'rect'],['Rect 8×10',8,10,'rect'],['Full panel 12×9',12,9,'rect']];
+
+const FONTS = [
+  {id:'cinzel',name:'Classic Roman',css:"'Cinzel', 'Times New Roman', serif",upper:true,ls:.06,cap:.7},
+  {id:'marcellus',name:'Modified Roman',css:"'Marcellus', 'Times New Roman', serif",upper:true,ls:.05,cap:.7},
+  {id:'garamond',name:'Garamond',css:"'EB Garamond', Georgia, serif",ls:.01,cap:.65},
+  {id:'baskerville',name:'Baskerville',css:"'Libre Baskerville', Georgia, serif",ls:.01,cap:.7},
+  {id:'fell',name:'Old English Serif',css:"'IM Fell English', Georgia, serif",ls:0,cap:.66},
+  {id:'cormorant',name:'Cormorant',css:"'Cormorant Garamond', Georgia, serif",ls:.02,cap:.63},
+  {id:'vibes',name:'Flowing Script',css:"'Great Vibes', 'Brush Script MT', cursive",ls:0,cap:.62,script:true},
+  {id:'pinyon',name:'Copperplate Script',css:"'Pinyon Script', 'Brush Script MT', cursive",ls:0,cap:.6,script:true},
+  {id:'oswald',name:'Block',css:"'Oswald', Impact, sans-serif",upper:true,ls:.04,cap:.81},
+  {id:'josefin',name:'Contemporary',css:"'Josefin Sans', 'Helvetica Neue', sans-serif",upper:true,ls:.12,cap:.7},
+  {id:'stencil',name:'Service Stencil',css:"'Saira Stencil One', Impact, sans-serif",upper:true,ls:.06,cap:.7}
+];
+const FMAP = Object.fromEntries(FONTS.map(f=>[f.id,f]));
+const HEADINGS = ['','In Loving Memory','Beloved Mother','Beloved Father','Forever in Our Hearts','Together Forever','Rest in Peace','In God’s Care'];
+const EPITAPHS = ['Together Forever','Forever in our hearts','Always loved, never forgotten','Until we meet again','The Lord is my shepherd','Love never ends','Gone fishing','Served with honor'];
+
+/* Cemetery rules — DEMO DATA. ROC must verify before launch. */
+const CEMETERIES = [
+  {id:'holy-sepulchre',name:'Holy Sepulchre Cemetery',city:'Rochester, NY',types:['upright','slant','bevel','flat','cremation'],maxW:48,maxH:42},
+  {id:'mount-hope',name:'Mount Hope Cemetery',city:'Rochester, NY',types:['upright','slant','bevel','flat','cremation'],maxW:60,maxH:60},
+  {id:'riverside',name:'Riverside Cemetery',city:'Rochester, NY',types:['upright','slant','bevel','flat','cremation'],maxW:48,maxH:48},
+  {id:'white-haven',name:'White Haven Memorial Park',city:'Pittsford, NY',types:['flat','bevel'],maxW:44,maxH:8},
+  {id:'parma-union',name:'Parma Union Cemetery',city:'Hilton, NY',types:['upright','slant','bevel','flat','cremation','pet'],maxW:48,maxH:48},
+  {id:'hillside',name:'Hillside Cemetery',city:'Hilton, NY',types:['upright','slant','bevel','flat'],maxW:42,maxH:42}
+];
+
+/* Sample price model — ROC replaces with real numbers. */
+const PRICE = {ft3:{1:110,2:135,3:165,4:210},baseK:.7,subK:.6,fin:{P5:1.15,P3:1.08,P2:1.05,PM4:1.06,PM2:1.04,HON:1.1,ST:1.05},
+  letter:{vcut:9,flat:7,polish:11,laser:6,raised:14,shape:12},art:{blast:95,shape:180,hand:260},laserSqIn:2.2,laserMin:250,photoLaserSqIn:2.8,photoLaserMin:350,porcelain:395,
+  vase:{granite:425,bronze:650},setting:295,foundationSqFt:28,spread:[.9,1.12]};
+
+/* ============================================================ helpers */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const r2=v=>Math.round(v*100)/100;
+const q8=v=>Math.round(v*8)/8;
+const uid=()=>Math.random().toString(36).slice(2,9);
+function seeded(seed){let s=seed>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}}
+function hashStr(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function hexA(hex,a){const[r,g,b]=hexToRgb(hex);return`rgba(${r},${g},${b},${a})`}
+function mix(a,b,t){const A=hexToRgb(a),B=hexToRgb(b);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')}
+/* inches → shop notation: 36 → 3-0, 8.5 → 0-8½ */
+function ftin(v){const n=Math.round(v*8)/8;const ft=Math.floor(n/12);let i=n-ft*12;const w=Math.floor(i),fr=i-w;const fs={0:'',0.125:'⅛',0.25:'¼',0.375:'⅜',0.5:'½',0.625:'⅝',0.75:'¾',0.875:'⅞'}[fr]??'';return`${ft}-${w}${fs}`}
+function inch(v){const n=Math.round(v*8)/8;const w=Math.floor(n),fr=n-w;const fs={0:'',0.125:'⅛',0.25:'¼',0.375:'⅜',0.5:'½',0.625:'⅝',0.75:'¾',0.875:'⅞'}[fr]??'';return`${w||(!fs?0:'')}${fs}″`}
+const money=v=>'$'+(Math.round(v/10)*10).toLocaleString();
+
+/* granite texture (procedural, tileable) */
+const TEX={};
+function granitePNG(g){
+  if(TEX[g.id])return TEX[g.id];
+  const S=256,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');const r=seeded(hashStr(g.id));
+  const wrap=(fn,px,py,pad)=>{for(const dx of[-S,0,S])for(const dy of[-S,0,S]){if(px+dx<-pad||px+dx>S+pad||py+dy<-pad||py+dy>S+pad)continue;fn(px+dx,py+dy)}};
+  x.fillStyle=g.base;x.fillRect(0,0,S,S);
+  for(let i=0;i<30;i++){const col=g.grains[i%g.grains.length],cx=r()*S,cy=r()*S,rad=25+r()*80;
+    wrap((X,Y)=>{const gr=x.createRadialGradient(X,Y,0,X,Y,rad);gr.addColorStop(0,hexA(col,.16));gr.addColorStop(1,hexA(col,0));x.fillStyle=gr;x.fillRect(X-rad,Y-rad,rad*2,rad*2)},cx,cy,rad)}
+  if(g.vein){for(let i=0;i<7;i++){const col=g.grains[i%g.grains.length];x.strokeStyle=hexA(col,.22+r()*.25);x.lineWidth=1+r()*5;
+    const y0=r()*S;for(const dy of[-S,0,S]){x.beginPath();x.moveTo(-10,y0+dy);x.bezierCurveTo(S*.3,y0+dy+(r()-.5)*120,S*.7,y0+dy+(r()-.5)*120,S+10,y0+dy+(r()-.5)*20);x.stroke()}}}
+  const n=g.fine?11000:5600;
+  for(let i=0;i<n;i++){const col=g.grains[Math.floor(r()*g.grains.length)],px=r()*S,py=r()*S,s=g.fine?(.5+r()*1.3):(.7+r()*2.8),s2=s*(.5+r()*.9),a=.3+r()*.65;
+    wrap((X,Y)=>{x.fillStyle=hexA(col,a);x.fillRect(X,Y,s,s2)},px,py,4)}
+  TEX[g.id]=c.toDataURL('image/jpeg',.86);return TEX[g.id];
+}
+
+/* shapes (local coords 0..W, 0..H) */
+function shapePath(shape,W,H){
+  const f=n=>n.toFixed(2);
+  switch(shape){
+    case 'serpentine':{const k=Math.min(H*.14,4.5);return`M0 ${f(H)}V${f(k)}C${f(W*.08)} ${f(k)} ${f(W*.12)} ${f(k*.35)} ${f(W*.24)} ${f(k*.35)}C${f(W*.36)} ${f(k*.35)} ${f(W*.4)} 0 ${f(W*.5)} 0C${f(W*.6)} 0 ${f(W*.64)} ${f(k*.35)} ${f(W*.76)} ${f(k*.35)}C${f(W*.88)} ${f(k*.35)} ${f(W*.92)} ${f(k)} ${f(W)} ${f(k)}V${f(H)}Z`}
+    case 'halfround':{const a=Math.min(W*.5,H*.3);return`M0 ${f(H)}V${f(a)}A${f(W/2)} ${f(a)} 0 0 1 ${f(W)} ${f(a)}V${f(H)}Z`}
+    case 'oval':return`M${f(W/2)} 0A${f(W/2)} ${f(H/2)} 0 1 1 ${f(W/2-.01)} 0Z`;
+    case 'gothic':{const a=H*.3;return`M0 ${f(H)}V${f(a)}Q0 ${f(a*.15)} ${f(W/2)} 0Q${f(W)} ${f(a*.15)} ${f(W)} ${f(a)}V${f(H)}Z`}
+    case 'temple':{const a=H*.2;return`M0 ${f(H)}V${f(a)}H${f(W*.06)}L${f(W/2)} 0L${f(W*.94)} ${f(a)}H${f(W)}V${f(H)}Z`}
+    case 'book':return`M0 ${f(H)}V${f(H*.09)}Q${f(W*.25)} ${f(-H*.03)} ${f(W*.5)} ${f(H*.08)}Q${f(W*.75)} ${f(-H*.03)} ${f(W)} ${f(H*.09)}V${f(H)}Z`;
+    case 'heart':return`M${f(W*.5)} ${f(H)}C${f(W*.2)} ${f(H*.76)} 0 ${f(H*.56)} 0 ${f(H*.3)}C0 ${f(H*.1)} ${f(W*.14)} 0 ${f(W*.29)} 0C${f(W*.4)} 0 ${f(W*.47)} ${f(H*.07)} ${f(W*.5)} ${f(H*.16)}C${f(W*.53)} ${f(H*.07)} ${f(W*.6)} 0 ${f(W*.71)} 0C${f(W*.86)} 0 ${f(W)} ${f(H*.1)} ${f(W)} ${f(H*.3)}C${f(W)} ${f(H*.56)} ${f(W*.8)} ${f(H*.76)} ${f(W*.5)} ${f(H)}Z`;
+    case 'doubleheart':{const h=(x0,w)=>`M${f(x0+w*.5)} ${f(H)}C${f(x0+w*.18)} ${f(H*.74)} ${f(x0)} ${f(H*.56)} ${f(x0)} ${f(H*.3)}C${f(x0)} ${f(H*.1)} ${f(x0+w*.14)} 0 ${f(x0+w*.29)} 0C${f(x0+w*.4)} 0 ${f(x0+w*.47)} ${f(H*.07)} ${f(x0+w*.5)} ${f(H*.16)}C${f(x0+w*.53)} ${f(H*.07)} ${f(x0+w*.6)} 0 ${f(x0+w*.71)} 0C${f(x0+w*.86)} 0 ${f(x0+w)} ${f(H*.1)} ${f(x0+w)} ${f(H*.3)}C${f(x0+w)} ${f(H*.56)} ${f(x0+w*.82)} ${f(H*.74)} ${f(x0+w*.5)} ${f(H)}Z`;return h(0,W*.56)+h(W*.44,W*.56)}
+    case 'cross':{const bw=W*.36,bx=(W-bw)/2,ay=H*.14,ah=H*.24;return`M${f(bx)} 0H${f(bx+bw)}V${f(ay)}H${f(W)}V${f(ay+ah)}H${f(bx+bw)}V${f(H)}H${f(bx)}V${f(ay+ah)}H0V${f(ay)}H${f(bx)}Z`}
+    case 'rounded':{const r=Math.min(W,H)*.14;return`M${f(r)} 0H${f(W-r)}Q${f(W)} 0 ${f(W)} ${f(r)}V${f(H-r)}Q${f(W)} ${f(H)} ${f(W-r)} ${f(H)}H${f(r)}Q0 ${f(H)} 0 ${f(H-r)}V${f(r)}Q0 0 ${f(r)} 0Z`}
+    default:return`M0 0H${f(W)}V${f(H)}H0Z`;
+  }
+}
+function textZone(shape,W,H){
+  const m=1.5;
+  const z=(x,y,w,h)=>({x:Math.max(W*x,m),y:Math.max(H*y,m),w:Math.min(W*w,W-2*m),h:Math.min(H*h,H-2*m)});
+  switch(shape){
+    case 'serpentine':return z(.06,.17,.88,.76);
+    case 'halfround':return z(.08,.22,.84,.7);
+    case 'oval':return z(.18,.15,.64,.7);
+    case 'gothic':return z(.1,.28,.8,.64);
+    case 'temple':return z(.09,.25,.82,.67);
+    case 'book':return z(.07,.15,.86,.75);
+    case 'heart':return z(.2,.18,.6,.45);
+    case 'doubleheart':return z(.12,.18,.76,.42);
+    case 'cross':return z(.33,.42,.34,.52);
+    default:return z(.06,.1,.88,.8);
+  }
+}
+
+/* text measurement (fonts must be loaded) */
+const MC=document.createElement('canvas').getContext('2d');
+const CAPCACHE={};
+function fontOf(e){return FMAP[e.font||D.font]||FONTS[0]}
+function capRatio(f){
+  if(CAPCACHE[f.id])return CAPCACHE[f.id];
+  try{MC.font=`100px ${f.css}`;const m=MC.measureText('H');const a=m.actualBoundingBoxAscent;if(a&&FONTS_READY){CAPCACHE[f.id]=clamp(a/100,.45,.95);return CAPCACHE[f.id]}}catch(e){}
+  return f.cap;
+}
+function dispText(e){const f=fontOf(e);return f.upper?String(e.text).toUpperCase():String(e.text)}
+function lsOf(e){return e.ls??fontOf(e).ls}
+function textMetrics(e){
+  const f=fontOf(e),fs=e.capH/capRatio(f),t=dispText(e);
+  MC.font=`100px ${f.css}`;const w=MC.measureText(t).width/100*fs+lsOf(e)*fs*Math.max(0,t.length-1);
+  return{fs,w,h:e.capH};
+}
+let FONTS_READY=false;
+
+/* ============================================================ state */
+const blankPerson=()=>({first:'',middle:'',last:'',born:'',died:'',nick:''});
+function newDesign(){
+  return{v:2,id:'',type:'upright',who:'companion',granite:'india-red',baseGranite:'',shape:'serpentine',
+    tablet:{w:36,t:8,h:24,fin:'P5'},base:{on:true,w:48,t:14,h:8,fin:'PT'},sub:{on:false,w:56,t:18,h:8,fin:'RP'},
+    font:'cinzel',cut:'vcut',sink:'auto',layout:'family',autoLayout:true,
+    family:'Meeson',people:[{first:'Robert',middle:'James',last:'',born:'1942',died:'2021',nick:''},{first:'Mary',middle:'Elizabeth',last:'',born:'1945',died:'',nick:''}],
+    heading:'',epitaph:'Together Forever',
+    els:[],vases:{style:'none',sides:'both'},urn:false,
+    cem:{id:'',name:'',section:'',lot:'',grave:''},
+    contact:{first:'',last:'',phone:'',email:'',rel:'',needBy:'',notes:''},
+    approval:{name:'',checks:{},sig:'',date:''},
+    route:{granite:true,letter:true,laser:true}};
+}
+let D=newDesign();
+const ASSETS={}; // photo id -> {src,name,pxW,pxH}
+const UI={step:0,side:'front',sel:null,zoom:1,ruler:true,grid:false,dims:true,bg:'studio',staff:false,artCat:'Faith',artQ:'',gfam:'all',drag:null};
+
+/* history */
+let HIST=[],HI=-1,histT=0;
+function snap(){return JSON.stringify(D)}
+function commit(now){clearTimeout(histT);const go=()=>{const s=snap();if(HIST[HI]===s)return;HIST=HIST.slice(0,HI+1);HIST.push(s);if(HIST.length>80)HIST.shift();HI=HIST.length-1;persist();toolsRender()};now?go():histT=setTimeout(go,350)}
+function undo(){if(HI<=0)return;HI--;D=JSON.parse(HIST[HI]);UI.sel=null;renderAll()}
+function redo(){if(HI>=HIST.length-1)return;HI++;D=JSON.parse(HIST[HI]);UI.sel=null;renderAll()}
+function persist(){try{localStorage.setItem('roc-designer',JSON.stringify({D,ASSETS}))}catch(e){try{localStorage.setItem('roc-designer',JSON.stringify({D,ASSETS:{}}))}catch(e2){}}}
+
+/* ============================================================ inscription auto layout */
+function people(){return D.people.filter(p=>p.first||p.last)}
+function surname(){return D.family||people()[0]?.last||''}
+function datesOf(p){if(!p.born&&!p.died)return'';return`${p.born||''} – ${p.died||''}`.trim()}
+function fullName(p){return[p.first,p.middle,p.last||(D.layout==='centered'?D.family:'')].filter(Boolean).join(' ')}
+
+function layoutSpec(){
+  const P=people(),rows=[];
+  const T=D.type,big=D.tablet.w;
+  if(D.heading)rows.push({cols:[[{slot:'heading',text:D.heading,capH:1.25}]]});
+  if(D.layout==='family'&&P.length){
+    if(surname())rows.push({cols:[[{slot:'family',text:surname(),capH:big>=40?4:3.5}]]});
+    for(let i=0;i<P.length;i+=3){
+      rows.push({cols:P.slice(i,i+3).map((p,j)=>{const k=i+j;return[{slot:'p'+k+'n',text:[p.first,p.middle].filter(Boolean).join(' ')+(p.nick?` “${p.nick}”`:''),capH:1.5},{slot:'p'+k+'d',text:datesOf(p),capH:1.25}].filter(l=>l.text)})});
+    }
+  }else{
+    P.forEach((p,k)=>{rows.push({cols:[[{slot:'p'+k+'n',text:fullName(p),capH:P.length>1?1.75:2.25}]]});if(p.nick)rows.push({cols:[[{slot:'p'+k+'k',text:`“${p.nick}”`,capH:1}]]});if(datesOf(p))rows.push({cols:[[{slot:'p'+k+'d',text:datesOf(p),capH:1.25}]]})});
+  }
+  if(D.epitaph)rows.push({cols:[[{slot:'epitaph',text:D.epitaph,capH:1.125}]]});
+  return rows;
+}
+function autoArrange(force){
+  const W=D.tablet.w,H=D.tablet.h;let Z=textZone(D.shape,W,H);
+  // keep room for front art/photo placed by the user? Text zone stays the main block.
+  const rows=layoutSpec();
+  const existing=Object.fromEntries(D.els.filter(e=>e.slot&&e.side==='front').map(e=>[e.slot,e]));
+  const want=new Set();
+  if(!rows.length){D.els=D.els.filter(e=>!e.slot);return}
+  // fit: width per column, then height
+  const tmp=l=>({kind:'text',text:l.text,capH:l.capH,font:null,ls:null});
+  rows.forEach(r=>{const cw=Z.w/r.cols.length;r.cols.forEach(c=>c.forEach(l=>{const m=textMetrics(tmp(l));if(m.w>cw*.92)l.capH=Math.max(.5,l.capH*cw*.92/m.w)}))});
+  const gap=l=>l.capH*.62;
+  const rowH=r=>Math.max(...r.cols.map(c=>c.reduce((a,l)=>a+l.capH+gap(l),0)));
+  let tot=rows.reduce((a,r)=>a+rowH(r),0)+ (rows.length-1)*.4;
+  const s=tot>Z.h?Z.h/tot:1;
+  rows.forEach(r=>r.cols.forEach(c=>c.forEach(l=>l.capH=Math.max(.5,q8(l.capH*s)))));
+  tot=rows.reduce((a,r)=>a+rowH(r),0)+(rows.length-1)*.4;
+  let y=Z.y+(Z.h-tot)/2;
+  rows.forEach(r=>{
+    const rh=rowH(r),cw=Z.w/r.cols.length;
+    r.cols.forEach((c,ci)=>{let yy=y+(rh-c.reduce((a,l)=>a+l.capH+gap(l),0))/2;const cx=Z.x+cw*ci+cw/2;
+      c.forEach(l=>{yy+=gap(l)/2;const cy=yy+l.capH/2;yy+=l.capH+gap(l)/2;want.add(l.slot);
+        const e=existing[l.slot];
+        if(e){e.text=l.text;if(force||D.autoLayout){e.x=r2(cx);e.y=r2(cy);e.capH=l.capH}}
+        else D.els.push({id:uid(),kind:'text',side:'front',slot:l.slot,text:l.text,capH:l.capH,x:r2(cx),y:r2(cy),font:null,cut:null,sink:null,ls:null,arc:0});
+      })});
+    y+=rh+.4;
+  });
+  D.els=D.els.filter(e=>!e.slot||e.side!=='front'||want.has(e.slot));
+}
+
+/* ============================================================ derived numbers */
+const ft3=p=>p.w*p.t*p.h/1728;
+const lbs=p=>Math.round(ft3(p)*CFG.DENSITY_LB_FT3);
+function hasBase(){return TYPES[D.type].base&&D.base.on}
+function hasSub(){return hasBase()&&D.sub.on}
+function totalWeight(){return lbs(D.tablet)+(hasBase()?lbs(D.base):0)+(hasSub()?lbs(D.sub):0)}
+function overallH(){return D.tablet.h+(hasBase()?D.base.h:0)+(hasSub()?D.sub.h:0)}
+function footprint(){const p=hasSub()?D.sub:hasBase()?D.base:D.tablet;return{w:p.w,t:p.t}}
+function foundation(){const f=footprint();return{w:f.w+8,t:f.t+8}}
+function G(){return GMAP[D.granite]}
+function GB(){return GMAP[D.baseGranite||D.granite]}
+function sinkColor(key,dark){
+  if(!key||key==='auto')key=dark?'frost':'black';
+  if(key==='frost')return dark?'#d4d1ca':mix(G().base,'#ffffff',.5);
+  return(SINK.find(s=>s[0]===key)||SINK[1])[2];
+}
+function estimate(){
+  const g=G(),t=D.tablet;let L=[];
+  const fin=c=>PRICE.fin[c]||1;
+  L.push(['Tablet '+ftin(t.w)+' × '+ftin(t.t)+' × '+ftin(t.h)+' '+t.fin,ft3(t)*PRICE.ft3[g.tier]*fin(t.fin)]);
+  if(hasBase())L.push(['Base '+D.base.fin,ft3(D.base)*PRICE.ft3[GB().tier]*PRICE.baseK*fin(D.base.fin)]);
+  if(hasSub())L.push(['Sub-base',ft3(D.sub)*PRICE.ft3[GB().tier]*PRICE.subK]);
+  let let$=0,laser$=0,art$=0,photo$=0;
+  D.els.forEach(e=>{
+    if(e.kind==='text'){const n=dispText(e).replace(/\s/g,'').length;let$+=n*(PRICE.letter[e.cut||D.cut]||8)*Math.max(1,e.capH/2)}
+    else if(e.kind==='art'){const h=e.w*artAR(e);if(e.method==='laser')laser$+=Math.max(PRICE.laserMin,e.w*h*PRICE.laserSqIn);else art$+=(PRICE.art[e.method]||95)*(e.w>10?1.6:1)}
+    else if(e.kind==='photo'){if(e.method==='laser')photo$+=Math.max(PRICE.photoLaserMin,e.w*e.h*PRICE.photoLaserSqIn);else photo$+=PRICE.porcelain}
+    else if(e.kind==='panel')art$+=Math.max(60,e.w*e.h*.35);
+  });
+  if(let$)L.push(['Lettering',let$]);if(art$)L.push(['Carved art & panels',art$]);if(laser$)L.push(['Laser-etched art',laser$]);if(photo$)L.push(['Portraits',photo$]);
+  if(D.vases.style!=='none')L.push([`Vases (${D.vases.sides==='both'?2:1}, ${D.vases.style})`,PRICE.vase[D.vases.style]*(D.vases.sides==='both'?2:1)]);
+  const fd=foundation();L.push(['Foundation & setting',PRICE.setting+fd.w*fd.t/144*PRICE.foundationSqFt]);
+  const sum=L.reduce((a,l)=>a+l[1],0);
+  return{lines:L,lo:sum*PRICE.spread[0],hi:sum*PRICE.spread[1],sum};
+}
+function artAR(e){const a=AMAP[e.ref];return a?a.vh/a.vw:1}
+function elBox(e){
+  if(e.kind==='text'){const m=textMetrics(e);const pad=e.capH*.22;const arcH=e.arc?e.arc:0;return{x:e.x-m.w/2-pad,y:e.y-e.capH/2-pad-arcH,w:m.w+pad*2,h:e.capH+pad*2+arcH,m}}
+  if(e.kind==='art'){const h=e.w*artAR(e);return{x:e.x-e.w/2,y:e.y-h/2,w:e.w,h}}
+  return{x:e.x-e.w/2,y:e.y-e.h/2,w:e.w,h:e.h};
+}
+function photoDPI(e){const a=ASSETS[e.asset];if(!a)return 0;return Math.round(Math.min(a.pxW/e.w,a.pxH/e.h))}
+
+/* ============================================================ checks */
+function checks(){
+  const out=[],add=(lvl,msg,fix)=>out.push({lvl,msg,fix});const t=D.tablet,g=G(),T=TYPES[D.type];
+  if(!people().length)add('err','No name entered yet.',4-1);
+  if(hasBase()){
+    if(D.base.w<t.w+6)add('warn',`Base is ${inch(D.base.w)} wide. Standard is at least 6″ wider than the tablet (${inch(t.w+6)}).`,2);
+    if(D.base.t<t.t+4)add('warn',`Base is ${inch(D.base.t)} thick. Standard is at least 4″ deeper than the tablet (${inch(t.t+4)}).`,2);
+  }
+  if(hasSub()&&(D.sub.w<D.base.w+4))add('warn','Sub-base should be at least 4″ wider than the base.',2);
+  const W=t.w,H=t.h;
+  D.els.forEach(e=>{
+    const b=elBox(e);const nm=e.kind==='text'?`“${dispText(e).slice(0,24)}”`:e.kind==='art'?(AMAP[e.ref]?.name||'Artwork'):e.kind==='photo'?'Portrait':'Panel';
+    if(b.x<.75||b.y<.5||b.x+b.w>W-.75||b.y+b.h>H-.5)add('err',`${nm} runs past the safe edge of the ${e.side} face.`,{sel:e.id});
+    if(e.kind==='text'&&e.capH<.5)add('err',`${nm} is ${inch(e.capH)} tall. Sandblast lettering needs at least ½″.`,{sel:e.id});
+    else if(e.kind==='text'&&e.capH<.75&&(e.cut||D.cut)!=='laser')add('warn',`${nm} is ${inch(e.capH)} tall. Under ¾″ is hard to read at the grave.`,{sel:e.id});
+    const laser=(e.kind==='text'&&(e.cut||D.cut)==='laser')||(e.method==='laser');
+    if(laser&&g.laser==='Not recommended')add('err',`${nm} is laser etched, but ${g.name} is too light for laser work. Use black granite or switch to sandblast.`,{sel:e.id});
+    if(e.kind==='photo'){const dpi=photoDPI(e);if(!e.asset)add('warn','Portrait placeholder: the photo still needs to be uploaded.',{sel:e.id});else if(dpi<120)add('err',`Portrait photo is ${dpi} dpi at ${e.w}×${e.h}″. Laser etching needs 200+ dpi. Upload a larger scan or reduce the size.`,{sel:e.id});else if(dpi<200)add('warn',`Portrait photo is ${dpi} dpi at this size. 250 dpi or more gives the best etch.`,{sel:e.id})}
+  });
+  ['front','back'].forEach(sd=>{const L=D.els.filter(e=>e.side===sd&&e.kind!=='panel');for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=elBox(L[i]),b=elBox(L[j]);const ix=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x),iy=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);if(ix>0&&iy>0&&ix*iy>.12*Math.min(a.w*a.h,b.w*b.h)){const nm=e=>e.kind==='text'?`“${dispText(e).slice(0,18)}”`:e.kind==='art'?AMAP[e.ref]?.name:'Portrait';add('warn',`${nm(L[i])} and ${nm(L[j])} overlap on the ${sd}.`,{sel:L[j].id})}}});
+  if(D.els.some(e=>e.side==='back')&&['P1','PFS'].includes(t.fin))add('warn',`Back has carving but the ${t.fin} finish leaves the back unpolished. Switch the tablet to P2, P3 or P5.`,2);
+  if(D.vases.style!=='none'){if(!hasBase())add('err','Vases need a base to sit on.',2);else if((D.base.w-t.w)/2<8)add('warn',`Vases need about 8″ of base on each side. There is ${inch((D.base.w-t.w)/2)} now; widen the base to ${inch(t.w+16)}.`,2)}
+  people().forEach(p=>{const b=parseInt(String(p.born).match(/\d{4}/)?.[0]),d=parseInt(String(p.died).match(/\d{4}/)?.[0]);if(b&&d&&d<b)add('err',`${p.first}: date of death is before date of birth.`,4-1)});
+  const c=CEMETERIES.find(x=>x.id===D.cem.id);
+  if(c){if(!c.types.includes(D.type))add('err',`${c.name} does not allow ${T.label.toLowerCase()} memorials (demo rules).`,0);
+    if(footprint().w>c.maxW)add('err',`${c.name} allows up to ${inch(c.maxW)} wide. This design is ${inch(footprint().w)} at the bottom.`,2);
+    if(overallH()>c.maxH)add('warn',`${c.name} limits height to ${inch(c.maxH)}. This design stands ${inch(overallH())}.`,2)}
+  if(totalWeight()>3000)add('info',`Total weight ${totalWeight().toLocaleString()} lbs. Setting crew will need a boom truck.`);
+  if(!out.some(o=>o.lvl!=='info'))add('ok','Design passes every production check.');
+  return out;
+}
+
+/* ============================================================ rendering */
+let RID=0;
+function fmtN(n){return(+n).toFixed(3).replace(/\.?0+$/,'')}
+function renderStone(o={}){
+  const side=o.side||'front',shop=o.mode==='shop',inter=!!o.interactive,id='s'+(++RID);
+  const t=D.tablet,b=D.base,s=D.sub,g=G(),gb=GB();
+  const HB=hasBase(),HS=hasSub();
+  const strip=(!shop&&HB)?Math.min(1.4,b.t*.1):0;
+  const sh=HS?s.h:0,bh=HB?b.h:0;
+  const TW=Math.max(t.w,HB?b.w:0,HS?s.w:0);
+  const tabBot=-(sh+bh)-strip*.6, tabTop=tabBot-t.h, tx=-t.w/2;
+  const totalTop=tabTop;
+  const unit=Math.max(TW,overallH()*1.25);
+  const fsz=o.fs||clamp(unit*.024,.75,2.2);
+  const padL=o.tight?unit*.05:(UI.ruler||shop?fsz*4.2:unit*.08), padR=o.tight?unit*.05:(o.dims!==false&&(UI.dims||shop)?fsz*5.5:unit*.08);
+  const padT=o.tight?unit*.05:fsz*(UI.ruler||shop?4.6:2), padB=o.tight?unit*.04:fsz*(o.dims!==false&&(UI.dims||shop)?4.6:1.6);
+  const vb=[-TW/2-padL,totalTop-padT,TW+padL+padR,-totalTop+padT+padB];
+  const showDims=o.dims!==false&&(shop||(UI.dims&&!o.thumb));
+  const dark=g.lum<.18;
+  const ink=shop?'#111':null;
+  const gp=`gp${id}`,gbp=`gbp${id}`;
+  let defs=`<defs>`;
+  if(!shop){
+    defs+=`<pattern id="${gp}" patternUnits="userSpaceOnUse" width="26" height="26"><image href="${granitePNG(g)}" width="26" height="26" preserveAspectRatio="none"/></pattern>`;
+    defs+=`<pattern id="${gbp}" patternUnits="userSpaceOnUse" width="26" height="26"><image href="${granitePNG(gb)}" width="26" height="26" preserveAspectRatio="none"/></pattern>`;
+    defs+=`<linearGradient id="sh${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".13"/><stop offset=".45" stop-color="#fff" stop-opacity=".02"/><stop offset=".55" stop-color="#000" stop-opacity=".0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>`;
+    defs+=`<linearGradient id="top${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity=".08"/></linearGradient>`;
+    defs+=`<filter id="rough${id}" x="-3%" y="-3%" width="106%" height="106%" primitiveUnits="userSpaceOnUse"><feTurbulence type="fractalNoise" baseFrequency=".45" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale=".75" xChannelSelector="R" yChannelSelector="G"/></filter>`;
+    defs+=`<filter id="mono${id}"><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="gamma" exponent=".8"/><feFuncG type="gamma" exponent=".8"/><feFuncB type="gamma" exponent=".8"/></feComponentTransfer></filter>`;
+    defs+=`<filter id="drop${id}" x="-10%" y="-10%" width="130%" height="130%"><feGaussianBlur in="SourceAlpha" stdDeviation=".6"/><feOffset dx=".5" dy=".7"/><feComponentTransfer><feFuncA type="linear" slope=".35"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+    defs+=`<radialGradient id="flr${id}" cx=".5" cy="0" r=".7"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>`;
+  }
+  let S='';
+  // background
+  const bx=vb[0],by=vb[1],bw=vb[2],bH=vb[3];
+  const bg=o.bg||(shop?'white':UI.bg);
+  if(bg==='studio'){S+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bH}" fill="#e9e8e3"/><rect x="${bx}" y="0" width="${bw}" height="${bH}" fill="#dcdad3"/>`}
+  else if(bg==='lawn'){S+=`<defs><linearGradient id="sky${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9cfe0"/><stop offset="1" stop-color="#e9eef0"/></linearGradient><linearGradient id="gr${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d955f"/><stop offset="1" stop-color="#5b7445"/></linearGradient></defs><rect x="${bx}" y="${by}" width="${bw}" height="${bH}" fill="url(#sky${id})"/><rect x="${bx}" y="${-(HB?Math.min(2,bh*.25):1)}" width="${bw}" height="${bH}" fill="url(#gr${id})"/>`}
+  else if(bg==='dark'){S+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bH}" fill="#2b2d2c"/><rect x="${bx}" y="0" width="${bw}" height="${bH}" fill="#1f2120"/>`}
+  else S+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bH}" fill="#ffffff"/>`;
+  if(!shop&&bg!=='white')S+=`<ellipse cx="0" cy="0" rx="${TW*.62}" ry="${Math.max(1.2,TW*.035)}" fill="url(#flr${id})"/>`;
+
+  const lw=fsz*.07;
+  const outline=`fill="none" stroke="#111" stroke-width="${lw}"`;
+  // stone block helper
+  const block=(x,y,w,h,fin,pat,isBase)=>{
+    if(shop)return`<rect x="${x}" y="${y}" width="${w}" height="${h}" ${outline}/>`;
+    const pitchedFront=isBase&&['PT','PM2','PM4','RP'].includes(fin);
+    let r='';
+    if(pitchedFront){
+      const m=fin==='PM2'?2:fin==='PM4'?4:0;
+      r+=`<g filter="url(#rough${id})"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${pat})"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" opacity=".2"/></g>`;
+      if(m)r+=`<rect x="${x}" y="${y}" width="${w}" height="${Math.min(m,h)}" fill="url(#${pat})"/><rect x="${x}" y="${y}" width="${w}" height="${Math.min(m,h)}" fill="url(#sh${id})"/>`;
+    }else{
+      r+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${pat})"/>`;
+      r+=fin==='SAWN'?`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" opacity=".18"/>`:`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#sh${id})"/>`;
+    }
+    r+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".08"/>`;
+    return r;
+  };
+  if(HS)S+=block(-s.w/2,-sh,s.w,sh,s.fin,gbp,true);
+  if(HB){
+    S+=block(-b.w/2,-sh-bh,b.w,bh,b.fin,gbp,true);
+    if(strip){const y0=-sh-bh,ins=Math.min(1.2,b.w*.02);S+=`<polygon points="${-b.w/2},${y0} ${b.w/2},${y0} ${b.w/2-ins},${y0-strip} ${-b.w/2+ins},${y0-strip}" fill="url(#${gbp})"/><polygon points="${-b.w/2},${y0} ${b.w/2},${y0} ${b.w/2-ins},${y0-strip} ${-b.w/2+ins},${y0-strip}" fill="url(#top${id})"/>`}
+  }
+  // vases
+  if(HB&&D.vases.style!=='none'){
+    const vw=Math.min(6,(b.w-t.w)/2-1),vh=vw*1.9;
+    const vs=[];if(D.vases.sides!=='right')vs.push(-t.w/2-(b.w-t.w)/4);if(D.vases.sides!=='left')vs.push(t.w/2+(b.w-t.w)/4);
+    const yb=-sh-bh-strip*.5;
+    vs.forEach(cx=>{if(vw<2)return;const p=`M${cx-vw*.42} ${yb}L${cx-vw*.5} ${yb-vh*.82}H${cx-vw*.56}V${yb-vh}H${cx+vw*.56}V${yb-vh*.82}H${cx+vw*.5}L${cx+vw*.42} ${yb}Z`;
+      S+=shop?`<path d="${p}" ${outline}/>`:D.vases.style==='bronze'?`<path d="${p}" fill="#7a5a32"/><path d="${p}" fill="url(#sh${id})"/>`:`<path d="${p}" fill="url(#${gbp})"/><path d="${p}" fill="url(#sh${id})"/>`});
+  }
+  // tablet
+  const sp=shapePath(D.shape,t.w,t.h);
+  const fin=t.fin, backSide=side==='back';
+  const facePolished=backSide?['P2','P3','P5','HON'].includes(fin):!['ST'].includes(fin);
+  let tab='';
+  if(shop){tab+=`<path d="${sp}" ${outline}/>`}
+  else{
+    tab+=`<path d="${sp}" fill="url(#${gp})"/>`;
+    const band=['P1','P2'].includes(fin)?'all':fin==='P3'?'sides':null;
+    if(band){
+      tab+=`<g filter="url(#rough${id})"><path d="${sp}" fill="#fff" opacity=".22"/></g>`;
+      const ins=Math.min(1.25,t.w*.04);
+      const sx=(t.w-2*ins)/t.w,sy=band==='all'?(t.h-ins)/t.h:1,ty=band==='all'?ins:0;
+      tab+=`<g transform="translate(${ins} ${ty}) scale(${sx} ${sy})"><path d="${sp}" fill="url(#${gp})" transform="translate(${-ins/sx*0} 0)"/></g>`;
+    }
+    if(!facePolished||fin==='ST')tab+=`<path d="${sp}" fill="#fff" opacity="${fin==='ST'?.3:.2}"/>`;
+    else tab+=`<path d="${sp}" fill="url(#sh${id})"/>`;
+    tab+=`<path d="${sp}" fill="none" stroke="#000" stroke-opacity=".3" stroke-width=".08"/>`;
+  }
+  // grid & safe zone
+  if(inter&&UI.grid){
+    let gl='';for(let x=1;x<t.w;x++)gl+=`<line x1="${x}" y1="0" x2="${x}" y2="${t.h}" stroke="${x%6?'rgba(255,255,255,.18)':'rgba(255,255,255,.42)'}" stroke-width="${x%6?.03:.06}"/>`;
+    for(let y=1;y<t.h;y++)gl+=`<line x1="0" y1="${y}" x2="${t.w}" y2="${y}" stroke="${y%6?'rgba(255,255,255,.18)':'rgba(255,255,255,.42)'}" stroke-width="${y%6?.03:.06}"/>`;
+    tab+=`<clipPath id="cl${id}"><path d="${sp}"/></clipPath><g clip-path="url(#cl${id})" style="mix-blend-mode:difference">${gl}</g><line x1="${t.w/2}" y1="0" x2="${t.w/2}" y2="${t.h}" stroke="#c79a52" stroke-width=".07" stroke-dasharray=".5 .4"/>`;
+  }
+  if(inter&&(UI.grid||UI.sel))tab+=`<rect x=".75" y=".5" width="${t.w-1.5}" height="${t.h-1}" fill="none" stroke="#c79a52" stroke-opacity=".7" stroke-width=".06" stroke-dasharray=".35 .3"/>`;
+  // elements
+  const els=o.blank?[]:D.els.filter(e=>e.side===side);
+  els.forEach((e,i)=>{tab+=drawEl(e,{shop,dark,id,inter,num:o.numbers?(D.els.filter(x=>x.side===side).indexOf(e)+1):0,fsz,hilite:o.hilite})});
+  // selection
+  if(inter&&UI.sel){const e=D.els.find(x=>x.id===UI.sel&&x.side===side);if(e){const bb=elBox(e);const hs=fsz*.45;
+    tab+=`<rect x="${bb.x}" y="${bb.y}" width="${bb.w}" height="${bb.h}" fill="none" stroke="#c79a52" stroke-width="${fsz*.06}" stroke-dasharray="${fsz*.3} ${fsz*.2}" pointer-events="none"/>`;
+    tab+=`<rect data-h="resize" x="${bb.x+bb.w-hs}" y="${bb.y+bb.h-hs}" width="${hs*2}" height="${hs*2}" rx="${hs*.3}" fill="#fff" stroke="#c79a52" stroke-width="${fsz*.07}" style="cursor:nwse-resize"/>`;
+    if(UI.dims){tab+=`<g font-family="IBM Plex Mono, monospace" font-size="${fsz*.75}" fill="#c79a52" pointer-events="none"><line x1="0" y1="${e.y}" x2="${bb.x}" y2="${e.y}" stroke="#c79a52" stroke-width="${fsz*.04}" stroke-dasharray="${fsz*.2} ${fsz*.15}"/><text x="${bb.x/2}" y="${e.y-fsz*.3}" text-anchor="middle" paint-order="stroke" stroke="#fff" stroke-width="${fsz*.25}">${inch(bb.x)}</text><line x1="${e.x}" y1="0" x2="${e.x}" y2="${bb.y}" stroke="#c79a52" stroke-width="${fsz*.04}" stroke-dasharray="${fsz*.2} ${fsz*.15}"/><text x="${e.x+fsz*.3}" y="${bb.y/2+fsz*.3}" paint-order="stroke" stroke="#fff" stroke-width="${fsz*.25}">${inch(bb.y)}</text></g>`}
+  }}
+  if(inter&&UI.drag&&UI.drag.snapX)tab+=`<line x1="${t.w/2}" y1="-1" x2="${t.w/2}" y2="${t.h+1}" stroke="#d14b8f" stroke-width="${fsz*.06}"/>`;
+  S+=`<g id="tab" transform="translate(${tx} ${tabTop})">${tab}</g>`;
+
+  // rulers (tablet coordinates)
+  if((UI.ruler&&inter)||(shop&&o.ruler)){
+    let R='';const ry=tabTop-fsz*1.6,rx=-TW/2-fsz*1.6;
+    R+=`<rect x="${tx}" y="${ry-fsz*1.1}" width="${t.w}" height="${fsz*1.1}" fill="#fff" fill-opacity=".85" stroke="#9aa09b" stroke-width="${fsz*.03}"/>`;
+    for(let i=0;i<=t.w;i++){const L=i%12===0?1:i%6===0?.7:.35;R+=`<line x1="${tx+i}" y1="${ry}" x2="${tx+i}" y2="${ry-fsz*1.1*L}" stroke="#5d625e" stroke-width="${fsz*.035}"/>`;if(i%6===0)R+=`<text x="${tx+i+fsz*.12}" y="${ry-fsz*.45}" font-size="${fsz*.55}" fill="#3a3d3b">${i}</text>`}
+    R+=`<rect x="${rx-fsz*1.1}" y="${tabTop}" width="${fsz*1.1}" height="${t.h}" fill="#fff" fill-opacity=".85" stroke="#9aa09b" stroke-width="${fsz*.03}"/>`;
+    for(let i=0;i<=t.h;i++){const L=i%12===0?1:i%6===0?.7:.35;R+=`<line x1="${rx}" y1="${tabTop+i}" x2="${rx-fsz*1.1*L}" y2="${tabTop+i}" stroke="#5d625e" stroke-width="${fsz*.035}"/>`;if(i%6===0&&i)R+=`<text x="${rx-fsz*1.05}" y="${tabTop+i-fsz*.15}" font-size="${fsz*.55}" fill="#3a3d3b">${i}</text>`}
+    S+=`<g font-family="IBM Plex Mono, monospace" pointer-events="none">${R}</g>`;
+  }
+  // dimensions
+  if(showDims){
+    const c=shop?'#111':'#4a4f4b',sw=fsz*.045,ar=fsz*.35;let Dm='';
+    const dimH=(x1,x2,y,lab)=>{Dm+=`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${c}" stroke-width="${sw}"/><path d="M${x1} ${y-ar}v${ar*2}M${x2} ${y-ar}v${ar*2}" stroke="${c}" stroke-width="${sw}"/><text x="${(x1+x2)/2}" y="${y-fsz*.3}" text-anchor="middle" font-size="${fsz*.72}" fill="${c}" paint-order="stroke" stroke="${shop?'#fff':'rgba(255,255,255,.7)'}" stroke-width="${fsz*.2}">${lab}</text>`};
+    const dimV=(y1,y2,x,lab)=>{Dm+=`<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${c}" stroke-width="${sw}"/><path d="M${x-ar} ${y1}h${ar*2}M${x-ar} ${y2}h${ar*2}" stroke="${c}" stroke-width="${sw}"/><text x="${x+fsz*.35}" y="${(y1+y2)/2+fsz*.25}" font-size="${fsz*.72}" fill="${c}" paint-order="stroke" stroke="${shop?'#fff':'rgba(255,255,255,.7)'}" stroke-width="${fsz*.2}">${lab}</text>`};
+    const bot=fsz*1.4;
+    if(HS)dimH(-s.w/2,s.w/2,bot+fsz*1.6,`${ftin(s.w)}`);
+    if(HB)dimH(-b.w/2,b.w/2,bot,`${ftin(b.w)}`);
+    else dimH(-t.w/2,t.w/2,bot,`${ftin(t.w)}`);
+    if(HB)dimH(-t.w/2,t.w/2,tabBot+fsz*1.2,`${ftin(t.w)}`);
+    const xr=TW/2+fsz*.8;
+    dimV(tabTop,tabBot,xr,ftin(t.h));
+    if(HB)dimV(-sh-bh,-sh,xr,ftin(bh));
+    if(HS)dimV(-sh,0,xr,ftin(sh));
+    if(HB)dimV(tabTop,0,xr+fsz*3.4,ftin(overallH()));
+    S+=`<g font-family="IBM Plex Mono, monospace" pointer-events="none">${Dm}</g>`;
+  }
+  const extra=o.extraDefs||'';
+  return`<svg xmlns="http://www.w3.org/2000/svg" ${o.cls?`class="${o.cls}"`:''} viewBox="${vb.map(fmtN).join(' ')}" ${o.w?`width="${o.w}" height="${Math.round(o.w*vb[3]/vb[2])}"`:''} preserveAspectRatio="xMidYMid meet">${extra}${defs}</defs>${S}</svg>`;
+}
+
+function drawEl(e,o){
+  const {shop,dark,id,inter}=o;
+  const cut=e.kind==='text'?(e.cut||D.cut):e.method;
+  const col=shop?'#111':cut==='laser'?'#d9d8d3':sinkColor(e.sink||D.sink,dark);
+  const lit=shop?null:mix(G().base,'#ffffff',dark?.25:.55), sha=shop?null:mix(G().base,'#000000',.5);
+  const hl=o.hilite&&o.hilite!==cut&&!(o.hilite==='laser'&&e.kind==='photo'&&e.method==='laser');
+  let s='';const da=inter?`data-id="${e.id}" style="cursor:move"`:'';
+  const op=hl?' opacity=".22"':'';
+  if(e.kind==='text'){
+    const f=fontOf(e),m=textMetrics(e),fs=m.fs,ls=lsOf(e)*fs,tx=dispText(e);
+    const base=e.y+e.capH/2;
+    const st=`font-family:${f.css.replace(/'/g,'&#39;').replace(/"/g,'&quot;')};font-size:${fs.toFixed(3)}px;letter-spacing:${ls.toFixed(3)}px;${e.it?'font-style:italic;':''}`;
+    const lay=(dx,dy,fill,extra='')=>{
+      if(e.arc){const half=m.w/2+fs*.4,k=e.arc;const p=`M${e.x-half+dx} ${base+dy}Q${e.x+dx} ${base-2*k+dy} ${e.x+half+dx} ${base+dy}`;const pid=`ap${id}${e.id}${dx}`.replace(/\./g,'');return`<path id="${pid}" d="${p}" fill="none"/><text style="${st}" fill="${fill}" ${extra}><textPath href="#${pid}" startOffset="50%" text-anchor="middle">${esc(tx)}</textPath></text>`}
+      return`<text x="${(e.x+ls/2+dx).toFixed(3)}" y="${(base+dy).toFixed(3)}" text-anchor="middle" style="${st}" fill="${fill}" ${extra}>${esc(tx)}</text>`};
+    if(shop)s+=lay(0,0,'#111');
+    else if(cut==='vcut'){s+=lay(-fs*.025,-fs*.03,sha)+lay(fs*.025,fs*.03,lit)+lay(0,0,col)}
+    else if(cut==='raised'){s+=lay(fs*.05,fs*.06,'rgba(0,0,0,.45)')+lay(0,0,mix(G().base,'#ffffff',.12))+lay(-fs*.012,-fs*.012,'none',`stroke="${lit}" stroke-width="${fs*.012}"`)}
+    else if(cut==='polish'){const bb=elBox(e);s+=`<rect x="${bb.x}" y="${bb.y}" width="${bb.w}" height="${bb.h}" fill="${col}" opacity=".85"/>`+lay(0,0,G().base)+lay(0,0,`url(#gp${id})`)}
+    else if(cut==='laser')s+=lay(0,0,col,'opacity=".92"');
+    else s+=lay(fs*.012,fs*.015,'rgba(0,0,0,.35)')+lay(0,0,col);
+    const bb=elBox(e);
+    return`<g ${da}${op}>${s}${inter?`<rect x="${bb.x}" y="${bb.y}" width="${bb.w}" height="${bb.h}" fill="transparent"/>`:''}${o.num?numTag(o.num,bb,o.fsz):''}</g>`;
+  }
+  if(e.kind==='art'){
+    const a=AMAP[e.ref];if(!a)return'';const sc=e.w/a.vw,h=e.w*artAR(e);
+    const fill=shop?'#111':col;
+    const inner=`<g transform="translate(${-a.vx-a.vw/2} ${-a.vy-a.vh/2})" fill="currentColor">${a.svg}</g>`;
+    if(!shop&&cut==='shape')s+=`<g transform="translate(${e.x+e.w*.006} ${e.y+e.w*.008}) rotate(${e.rot||0}) scale(${(e.flip?-sc:sc).toFixed(5)} ${sc.toFixed(5)})" style="color:${sha}">${inner}</g>`;
+    s+=`<g transform="translate(${e.x} ${e.y}) rotate(${e.rot||0}) scale(${(e.flip?-sc:sc).toFixed(5)} ${sc.toFixed(5)})" style="color:${fill}" ${cut==='laser'&&!shop?'opacity=".78"':''}>${inner}</g>`;
+    const bb=elBox(e);
+    return`<g ${da}${op}>${s}${inter?`<rect x="${bb.x}" y="${bb.y}" width="${bb.w}" height="${bb.h}" fill="transparent"/>`:''}${o.num?numTag(o.num,bb,o.fsz):''}</g>`;
+  }
+  if(e.kind==='photo'){
+    const x=e.x-e.w/2,y=e.y-e.h/2,A=ASSETS[e.asset];
+    const clip=e.shape==='oval'?`<ellipse cx="${e.x}" cy="${e.y}" rx="${e.w/2}" ry="${e.h/2}"/>`:`<rect x="${x}" y="${y}" width="${e.w}" height="${e.h}" rx="${Math.min(e.w,e.h)*.03}"/>`;
+    const cid=`pc${id}${e.id}`;
+    if(shop){s+=`<g fill="none" stroke="#111" stroke-width="${o.fsz*.06}" stroke-dasharray="${o.fsz*.3} ${o.fsz*.2}">${clip}</g><text x="${e.x}" y="${e.y}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="${Math.min(e.w*.11,o.fsz*.8)}" fill="#111">${e.method==='laser'?'LASER':'PORCELAIN'} ${fmtN(e.w)}×${fmtN(e.h)}″</text>`}
+    else{
+      if(e.method!=='laser')s+=e.shape==='oval'?`<ellipse cx="${e.x}" cy="${e.y}" rx="${e.w/2+.35}" ry="${e.h/2+.35}" fill="#9a7a45"/>`:`<rect x="${x-.35}" y="${y-.35}" width="${e.w+.7}" height="${e.h+.7}" rx=".3" fill="#9a7a45"/>`;
+      s+=`<clipPath id="${cid}">${clip}</clipPath><g clip-path="url(#${cid})">`;
+      if(A)s+=`<image href="${A.src}" x="${x}" y="${y}" width="${e.w}" height="${e.h}" preserveAspectRatio="xMidYMid slice" ${e.method==='laser'||e.method==='porcelain-bw'?`filter="url(#mono${id})"`:''} ${e.method==='laser'?'style="mix-blend-mode:screen" opacity=".92"':''}/>`;
+      else s+=`<rect x="${x}" y="${y}" width="${e.w}" height="${e.h}" fill="${e.method==='laser'?'rgba(255,255,255,.08)':'#efe9df'}"/><g fill="${e.method==='laser'?'#d8d6d0':'#b9b2a6'}" opacity=".7"><circle cx="${e.x}" cy="${e.y-e.h*.12}" r="${e.w*.2}"/><path d="M${e.x-e.w*.42} ${e.y+e.h*.5}C${e.x-e.w*.4} ${e.y+e.h*.12} ${e.x-e.w*.2} ${e.y+e.h*.06} ${e.x} ${e.y+e.h*.06}S${e.x+e.w*.4} ${e.y+e.h*.12} ${e.x+e.w*.42} ${e.y+e.h*.5}Z"/></g>`;
+      s+=`</g>`;
+      if(e.method==='laser'&&A)s+=`<g clip-path="url(#${cid})"><rect x="${x}" y="${y}" width="${e.w}" height="${e.h}" fill="none" stroke="${G().base}" stroke-width="${Math.min(e.w,e.h)*.12}" opacity=".85" filter="blur(0px)"/></g>`;
+    }
+    const bb=elBox(e);
+    return`<g ${da}${op}>${s}${inter?`<rect x="${bb.x}" y="${bb.y}" width="${bb.w}" height="${bb.h}" fill="transparent"/>`:''}${o.num?numTag(o.num,bb,o.fsz):''}</g>`;
+  }
+  if(e.kind==='panel'){
+    const x=e.x-e.w/2,y=e.y-e.h/2;
+    const shp=e.shape==='oval'?`<ellipse cx="${e.x}" cy="${e.y}" rx="${e.w/2}" ry="${e.h/2}"`:e.shape==='arch'?`<path d="M${x} ${y+e.h}V${y+e.w*.3}A${e.w/2} ${e.w*.3} 0 0 1 ${x+e.w} ${y+e.w*.3}V${y+e.h}Z"`:`<rect x="${x}" y="${y}" width="${e.w}" height="${e.h}" rx="${Math.min(e.w,e.h)*.04}"`;
+    if(shop)s+=`${shp} fill="none" stroke="#111" stroke-width="${o.fsz*.05}"/>`;
+    else{const pf=e.finish==='steeled'?'#fff':sinkColor(e.sink||'frost',dark);s+=`${shp} fill="${pf}" opacity="${e.finish==='steeled'?.28:dark?.32:.4}"/>`+`${shp} fill="none" stroke="${sha}" stroke-width=".08" opacity=".7"/>`}
+    const bb=elBox(e);
+    return`<g ${da}${op}>${s}${o.num?numTag(o.num,bb,o.fsz):''}</g>`;
+  }
+  return'';
+}
+function numTag(n,bb,fsz){const r=fsz*.55;const x=bb.x-r*.4,y=bb.y-r*.4;return`<g pointer-events="none"><circle cx="${x}" cy="${y}" r="${r}" fill="#47704C"/><text x="${x}" y="${y+r*.36}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="${r*1.05}" fill="#fff">${n}</text></g>`}
+
+/* side elevation for the supplier: shows thicknesses */
+function sideElevation(){
+  const t=D.tablet,b=D.base,s=D.sub,HB=hasBase(),HS=hasSub();
+  const sh=HS?s.h:0,bh=HB?b.h:0;
+  const TD=Math.max(t.t,HB?b.t:0,HS?s.t:0),H=overallH();
+  const fsz=clamp(Math.max(TD,H)*.035,.7,1.6);
+  const vb=[-TD/2-fsz*2.5,-H-fsz*2.5,TD+fsz*8,H+fsz*5];
+  const L=`fill="none" stroke="#111" stroke-width="${fsz*.07}"`;
+  let S=`<rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="#fff"/>`;
+  if(HS)S+=`<rect x="${-s.t/2}" y="${-sh}" width="${s.t}" height="${sh}" ${L}/>`;
+  if(HB)S+=`<rect x="${-b.t/2}" y="${-sh-bh}" width="${b.t}" height="${bh}" ${L}/>`;
+  const slant=D.type==='slant';
+  S+=slant?`<path d="M${-t.t/2} ${-sh-bh}V${-H+1.5}L${-t.t/2+2} ${-H}H${t.t/2}V${-sh-bh}Z" ${L}/>`:`<rect x="${-t.t/2}" y="${-H}" width="${t.t}" height="${t.h}" ${L}/>`;
+  const c='#111',sw=fsz*.045;
+  const dH=(x1,x2,y,lab)=>`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${c}" stroke-width="${sw}"/><text x="${(x1+x2)/2}" y="${y-fsz*.3}" text-anchor="middle" font-size="${fsz*.7}">${lab}</text>`;
+  S+=`<g font-family="IBM Plex Mono, monospace" fill="#111">${dH(-t.t/2,t.t/2,-H-fsz*.8,ftin(t.t))}${HB?dH(-b.t/2,b.t/2,fsz*1.3,ftin(b.t)):''}${HS?dH(-s.t/2,s.t/2,fsz*2.6,ftin(s.t)):''}<text x="${TD/2+fsz*.6}" y="${-H/2}" font-size="${fsz*.7}">SIDE</text></g>`;
+  return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.map(fmtN).join(' ')}">${S}</svg>`;
+}
+
+/* true-size face export for stencil/laser software */
+function faceSVG(side){
+  const t=D.tablet,els=D.els.filter(e=>e.side===side);
+  let s=`<path d="${shapePath(D.shape,t.w,t.h)}" fill="none" stroke="#000" stroke-width="0.02"/>`;
+  els.forEach(e=>{s+=drawEl(e,{shop:true,dark:false,id:'x',inter:false,fsz:1})});
+  return`<?xml version="1.0" encoding="UTF-8"?>\n<!-- ${CFG.brand} · ${D.id||'draft'} · ${side} face · 1 unit = 1 inch · ${t.w}″ × ${t.h}″ -->\n<svg xmlns="http://www.w3.org/2000/svg" width="${t.w}in" height="${t.h}in" viewBox="0 0 ${t.w} ${t.h}">${s}</svg>`;
+}
+
+/* ============================================================ stage + interaction */
+function stageRender(){
+  const st=$('#stage');
+  st.innerHTML=renderStone({interactive:true,side:UI.side,cls:'mon'})+`<span class="side-tag">${UI.side==='front'?'Front':'Back'} · ${D.tablet.w}″ × ${D.tablet.h}″ tablet</span>`;
+  const svg=st.querySelector('svg');
+  if(UI.zoom!==1){svg.style.width=(UI.zoom*100)+'%';svg.style.height=(UI.zoom*100)+'%'}
+}
+function svgPt(ev){const svg=$('#stage svg');const tab=svg.querySelector('#tab');const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(tab.getScreenCTM().inverse())}
+function bindStage(){
+  const st=$('#stage');
+  st.addEventListener('pointerdown',ev=>{
+    const h=ev.target.closest('[data-h]'),g=ev.target.closest('[data-id]');
+    if(h&&UI.sel){const e=D.els.find(x=>x.id===UI.sel);const p=svgPt(ev);UI.drag={mode:'resize',id:e.id,cx:e.x,cy:e.y,d0:Math.hypot(p.x-e.x,p.y-e.y),w0:e.kind==='text'?e.capH:e.w,h0:e.h};st.setPointerCapture(ev.pointerId);ev.preventDefault();return}
+    if(g){const e=D.els.find(x=>x.id===g.dataset.id);if(!e)return;UI.sel=e.id;const p=svgPt(ev);UI.drag={mode:'move',id:e.id,dx:p.x-e.x,dy:p.y-e.y,moved:false};st.setPointerCapture(ev.pointerId);inspRender();stageRender();ev.preventDefault();return}
+    if(UI.sel){UI.sel=null;inspRender();stageRender();if(UI.step===3)panelRender()}
+  });
+  st.addEventListener('pointermove',ev=>{
+    const d=UI.drag;if(!d)return;const e=D.els.find(x=>x.id===d.id);if(!e)return;const p=svgPt(ev);
+    if(d.mode==='move'){let nx=p.x-d.dx,ny=p.y-d.dy;d.snapX=Math.abs(nx-D.tablet.w/2)<.4;if(d.snapX)nx=D.tablet.w/2;e.x=r2(q8(nx));e.y=r2(q8(ny));d.moved=true;if(e.slot)D.autoLayout=false}
+    else{const k=Math.hypot(p.x-d.cx,p.y-d.cy)/Math.max(.1,d.d0);if(e.kind==='text'){e.capH=clamp(q8(d.w0*k),.375,12)}else{e.w=clamp(r2(d.w0*k),.75,D.tablet.w*1.2);if(e.kind!=='art')e.h=clamp(r2(d.h0*k),.75,D.tablet.h*1.2)}if(e.slot)D.autoLayout=false}
+    stageRender();inspSync();
+  });
+  const end=()=>{if(UI.drag){UI.drag=null;commit(true);stageRender();specRender();if([3,4,5].includes(UI.step))panelRender()}};
+  st.addEventListener('pointerup',end);st.addEventListener('pointercancel',end);
+  st.addEventListener('wheel',ev=>{if(!ev.ctrlKey&&!ev.metaKey)return;ev.preventDefault();setZoom(UI.zoom*(ev.deltaY<0?1.15:1/1.15))},{passive:false});
+  document.addEventListener('keydown',ev=>{
+    const tag=document.activeElement?.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;
+    if((ev.metaKey||ev.ctrlKey)&&ev.key.toLowerCase()==='z'){ev.preventDefault();ev.shiftKey?redo():undo();return}
+    if(!UI.sel)return;const e=D.els.find(x=>x.id===UI.sel);if(!e)return;
+    const st={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[ev.key];
+    if(st){ev.preventDefault();const k=ev.shiftKey?1:.125;e.x=r2(e.x+st[0]*k);e.y=r2(e.y+st[1]*k);if(e.slot)D.autoLayout=false;commit();stageRender();inspSync()}
+    if(ev.key==='Delete'||ev.key==='Backspace'){ev.preventDefault();delSel()}
+  });
+}
+function setZoom(z){UI.zoom=clamp(z,1,4);stageRender();toolsRender()}
+
+/* ============================================================ toolbar, inspector, spec bar */
+const IC={
+  ruler:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 11 11 2l3 3-9 9z"/><path d="M5 8l1.5 1.5M7 6l1 1M9 4l1.5 1.5"/></svg>',
+  grid:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 2h12v12H2zM6 2v12M10 2v12M2 6h12M2 10h12"/></svg>',
+  dims:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5v6M14 5v6M2 8h12"/></svg>',
+  undo:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3 2 6l3 3"/><path d="M2 6h7a4 4 0 0 1 0 8H6"/></svg>',
+  redo:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m11 3 3 3-3 3"/><path d="M14 6H7a4 4 0 0 0 0 8h3"/></svg>'
+};
+function toolsRender(){
+  const b=(k,lab,on,dis)=>`<button data-tool="${k}" aria-pressed="${!!on}" ${dis?'disabled':''}>${lab}</button>`;
+  $('#tools').innerHTML=`
+   <div class="grpb">${b('front','Front',UI.side==='front')}${b('back','Back',UI.side==='back',!TYPES[D.type].base&&D.type!=='pet'&&false)}</div>
+   <div class="grpb">${b('ruler',IC.ruler+'<span class="hide-m">Ruler</span>',UI.ruler)}${b('grid',IC.grid+'<span class="hide-m">Grid</span>',UI.grid)}${b('dims',IC.dims+'<span class="hide-m">Dimensions</span>',UI.dims)}</div>
+   <div class="grpb">${b('undo',IC.undo+'<span class="hide-m">Undo</span>',false,HI<=0)}${b('redo',IC.redo+'<span class="hide-m">Redo</span>',false,HI>=HIST.length-1)}</div>
+   <div class="sp"></div>
+   <div class="grpb hide-m">${[['studio','Studio'],['lawn','Cemetery'],['dark','Dark'],['white','White']].map(([k,l])=>b('bg:'+k,l,UI.bg===k)).join('')}</div>
+   <div class="grpb">${b('zout','−')}<span class="zoomv">${Math.round(UI.zoom*100)}%</span>${b('zin','+')}${b('fit','Fit')}</div>`;
+}
+function inspRender(){
+  const el=$('#insp'),e=D.els.find(x=>x.id===UI.sel);
+  if(!e){el.hidden=true;el.innerHTML='';return}
+  el.hidden=false;
+  const opt=(arr,v)=>arr.map(a=>`<option value="${a[0]}" ${a[0]===v?'selected':''}>${a[1]}</option>`).join('');
+  let h='';
+  if(e.kind==='text'){
+    h=`<span class="tag">Text</span>
+    <label class="f tx"><span>Wording</span><input type="text" id="i-text" value="${esc(e.text)}"></label>
+    <label class="f"><span>Font</span><select id="i-font"><option value="">Design font</option>${FONTS.map(f=>`<option value="${f.id}" ${e.font===f.id?'selected':''}>${f.name}</option>`).join('')}</select></label>
+    <label class="f nm"><span>Letter ht (in)</span><input type="number" id="i-cap" step=".125" min=".375" max="12" value="${e.capH}"></label>
+    <label class="f"><span>Cut</span><select id="i-cut"><option value="">Design cut</option>${opt(CUTS,e.cut)}</select></label>
+    <label class="f"><span>Sinkage</span><select id="i-sink"><option value="">Design color</option>${opt(SINK,e.sink)}</select></label>
+    <label class="f nm"><span>Spacing</span><input type="number" id="i-ls" step=".01" min="-.05" max=".5" value="${lsOf(e)}"></label>
+    <label class="f nm"><span>Arch (in)</span><input type="number" id="i-arc" step=".25" min="0" max="8" value="${e.arc||0}"></label>`;
+  }else if(e.kind==='art'){
+    h=`<span class="tag">${esc(AMAP[e.ref]?.name||'Art')}</span>
+    <label class="f nm"><span>Width (in)</span><input type="number" id="i-w" step=".25" min=".75" value="${e.w}"></label>
+    <label class="f"><span>Method</span><select id="i-method">${opt(ART_METHODS,e.method)}</select></label>
+    <label class="f"><span>Sinkage</span><select id="i-sink"><option value="">Design color</option>${opt(SINK,e.sink)}</select></label>
+    <label class="f nm"><span>Rotate°</span><input type="number" id="i-rot" step="5" value="${e.rot||0}"></label>
+    <button class="btn sm" data-i="flip">Mirror</button>`;
+  }else if(e.kind==='photo'){
+    const dpi=photoDPI(e);
+    h=`<span class="tag">Portrait</span>
+    <label class="f nm"><span>Width (in)</span><input type="number" id="i-w" step=".25" value="${e.w}"></label>
+    <label class="f nm"><span>Height (in)</span><input type="number" id="i-h" step=".25" value="${e.h}"></label>
+    <label class="f"><span>Shape</span><select id="i-shape">${opt([['oval','Oval'],['rect','Rectangle']],e.shape)}</select></label>
+    <label class="f"><span>Method</span><select id="i-method">${opt([['laser','Laser etched'],['porcelain','Porcelain color'],['porcelain-bw','Porcelain B&W']],e.method)}</select></label>
+    <span class="small mono" style="align-self:center;color:${dpi>=200?'var(--ok)':'var(--warn)'}">${e.asset?dpi+' dpi':'No photo yet'}</span>
+    <button class="btn sm" data-i="photo">${e.asset?'Replace photo':'Upload photo'}</button>`;
+  }else{
+    h=`<span class="tag">Panel</span>
+    <label class="f nm"><span>Width</span><input type="number" id="i-w" step=".25" value="${e.w}"></label>
+    <label class="f nm"><span>Height</span><input type="number" id="i-h" step=".25" value="${e.h}"></label>
+    <label class="f"><span>Shape</span><select id="i-shape">${opt([['rect','Rectangle'],['oval','Oval'],['arch','Arch']],e.shape)}</select></label>
+    <label class="f"><span>Finish</span><select id="i-finish">${opt([['frost','Frosted'],['steeled','Steeled']],e.finish)}</select></label>`;
+  }
+  h+=`<button class="btn sm" data-i="center" title="Center left to right">Center</button><button class="btn sm" data-i="dup">Duplicate</button><button class="btn sm" data-i="del" style="color:var(--err)">Delete</button><button class="btn sm ghost" data-i="close">Done</button>`;
+  el.innerHTML=h;
+}
+function inspSync(){const e=D.els.find(x=>x.id===UI.sel);if(!e)return;const s=(id,v)=>{const n=document.getElementById(id);if(n&&document.activeElement!==n)n.value=v};s('i-cap',e.capH);s('i-w',e.w);s('i-h',e.h)}
+function delSel(){D.els=D.els.filter(x=>x.id!==UI.sel);UI.sel=null;commit(true);renderAll()}
+function bindInspector(){
+  const el=$('#insp');
+  el.addEventListener('input',ev=>{
+    const e=D.els.find(x=>x.id===UI.sel);if(!e)return;const t=ev.target,v=t.value;
+    const num=parseFloat(v);
+    switch(t.id){
+      case 'i-text':e.text=v;if(e.slot){e.slot=null}break;
+      case 'i-cap':if(num>0){e.capH=num;if(e.slot)D.autoLayout=false}break;
+      case 'i-ls':if(!isNaN(num))e.ls=num;break;
+      case 'i-arc':e.arc=num||0;break;
+      case 'i-w':if(num>0)e.w=num;break;
+      case 'i-h':if(num>0)e.h=num;break;
+      case 'i-rot':e.rot=num||0;break;
+      default:return;
+    }
+    commit();stageRender();specRender();
+  });
+  el.addEventListener('change',ev=>{
+    const e=D.els.find(x=>x.id===UI.sel);if(!e)return;const t=ev.target,v=t.value;
+    if(t.id==='i-font')e.font=v||null;else if(t.id==='i-cut')e.cut=v||null;else if(t.id==='i-sink')e.sink=v||null;else if(t.id==='i-method')e.method=v;else if(t.id==='i-shape')e.shape=v;else if(t.id==='i-finish')e.finish=v;else return;
+    commit(true);stageRender();inspRender();
+  });
+  el.addEventListener('click',ev=>{
+    const b=ev.target.closest('[data-i]');if(!b)return;const e=D.els.find(x=>x.id===UI.sel);if(!e)return;
+    const a=b.dataset.i;
+    if(a==='del')return delSel();
+    if(a==='close'){UI.sel=null;inspRender();stageRender();return}
+    if(a==='center'){e.x=D.tablet.w/2;if(e.slot)D.autoLayout=false}
+    if(a==='flip')e.flip=!e.flip;
+    if(a==='dup'){const c={...JSON.parse(JSON.stringify(e)),id:uid(),slot:null,x:e.x+1,y:e.y+1};D.els.push(c);UI.sel=c.id}
+    if(a==='photo'){PHOTO_TARGET=e.id;$('#photoIn').click();return}
+    commit(true);stageRender();inspRender();panelRender();
+  });
+}
+function specRender(){
+  const t=D.tablet,b=D.base,s=D.sub,T=TYPES[D.type];
+  const n=(k,v)=>`<input type="number" class="mono" data-spec="${k}" value="${v}" min="1" step=".5" aria-label="${k}">`;
+  const sel=(k,arr,v)=>`<select data-spec="${k}">${arr.map(f=>`<option value="${f[0]}" ${f[0]===v?'selected':''}>${f[1]}</option>`).join('')}</select>`;
+  let h=`<div class="pc"><b>Tablet</b>${n('tablet.w',t.w)}<span class="x">×</span>${n('tablet.t',t.t)}<span class="x">×</span>${n('tablet.h',t.h)}${sel('tablet.fin',TAB_FIN,t.fin)}<span class="wt">${lbs(t).toLocaleString()} lbs</span></div>`;
+  if(T.base)h+=hasBase()?`<div class="pc"><b>Base</b>${n('base.w',b.w)}<span class="x">×</span>${n('base.t',b.t)}<span class="x">×</span>${n('base.h',b.h)}${sel('base.fin',BASE_FIN,b.fin)}<span class="wt">${lbs(b).toLocaleString()} lbs</span></div>`:`<button class="btn sm" data-specbtn="base">+ Base</button>`;
+  if(hasBase())h+=hasSub()?`<div class="pc"><b>Sub base</b>${n('sub.w',s.w)}<span class="x">×</span>${n('sub.t',s.t)}<span class="x">×</span>${n('sub.h',s.h)}<span class="wt">${lbs(s).toLocaleString()} lbs</span></div>`:`<button class="btn sm" data-specbtn="sub">+ Sub base</button>`;
+  h+=`<span class="tot">${totalWeight().toLocaleString()} lbs · ${ftin(overallH())} tall</span>`;
+  const sb=$('#specbar');
+  if(sb.contains(document.activeElement)&&document.activeElement.tagName==='INPUT'){sb.querySelectorAll('.wt').forEach((w,i)=>{});sb.querySelector('.tot').textContent=`${totalWeight().toLocaleString()} lbs · ${ftin(overallH())} tall`;return}
+  sb.innerHTML=h;
+}
+function setPath(path,v){const k=path.split('.');let o=D;for(let i=0;i<k.length-1;i++)o=o[k[i]];o[k.at(-1)]=v}
+function getPath(path){return path.split('.').reduce((o,k)=>o?.[k],D)}
+
+/* ============================================================ steps */
+const STEPS=[
+  {id:'start',label:'Start',title:'Start your memorial',sub:'Pick a starting design or the kind of memorial. Every choice stays editable.'},
+  {id:'stone',label:'Granite & shape',title:'Granite and shape',sub:'Colors are rendered from ROC’s granite list. Bring home a sample before you approve.'},
+  {id:'size',label:'Size & finish',title:'Size, base and finish',sub:'Sizes are in inches and shop notation (feet-inches). Weights update as you go.'},
+  {id:'text',label:'Inscription',title:'Names, dates and lettering',sub:'Type it once. The layout fits itself to the stone, then you can drag any line.'},
+  {id:'art',label:'Art & photos',title:'Artwork, portraits and vases',sub:'Tap a design to place it, then drag and resize on the stone.'},
+  {id:'back',label:'Back',title:'The back of the stone',sub:'Many families add the surname, children’s names or a scene on the back.'},
+  {id:'review',label:'Review',title:'Review and production checks',sub:'Every design is checked against the rules ROC’s shop and suppliers work to.'},
+  {id:'send',label:'Approve & send',title:'Approve and send',sub:'Sign off on the proof and send it to ROC. Staff can route it to production from here.'}
+];
+function railRender(){
+  const ck=checks();
+  $('#rail').innerHTML=STEPS.map((s,i)=>`<button data-step="${i}" ${i===UI.step?'aria-current="step"':''} class="${i<UI.step?'done':''}"><span class="n">${i+1}</span>${s.label}${s.id==='review'&&ck.some(c=>c.lvl==='err')?'<i class="flag" title="Needs attention"></i>':''}</button>`).join('');
+}
+function goStep(i){UI.step=clamp(i,0,STEPS.length-1);UI.side=STEPS[UI.step].id==='back'?'back':'front';UI.sel=null;renderAll();$('#pbody').scrollTop=0}
+
+function pbtn(k,v,on,lab,sub){return`<button class="opt" data-set="${k}" data-v="${esc(v)}" aria-pressed="${!!on}"><b>${lab}</b>${sub?`<span>${sub}</span>`:''}</button>`}
+function chip(k,v,on,lab){return`<button class="chip" data-set="${k}" data-v="${esc(v)}" aria-pressed="${!!on}">${lab}</button>`}
+function grp(lg,body,x){return`<div class="grp"><div class="lg">${lg}${x?`<span class="x">${x}</span>`:''}</div>${body}</div>`}
+function num(path,lab,step=.5){const v=getPath(path);return`<label class="f"><span>${lab}</span><input type="number" data-bind="${path}" data-num="1" step="${step}" min="1" value="${v}"><small>${ftin(v)}</small></label>`}
+function txt(path,lab,ph=''){return`<label class="f"><span>${lab}</span><input type="text" data-bind="${path}" value="${esc(getPath(path))}" placeholder="${esc(ph)}"></label>`}
+
+const PRESETS=[
+  {name:'Companion serpentine',d:{type:'upright',who:'companion',granite:'india-red',shape:'serpentine',tablet:{w:36,t:8,h:24,fin:'P5'},base:{on:true,w:48,t:14,h:8,fin:'PT'},layout:'family',font:'cinzel',cut:'vcut',sink:'auto',art:[['LV-02',5,.5,.2]]}},
+  {name:'Single upright, gray',d:{type:'upright',who:'individual',granite:'barre-gray',shape:'halfround',tablet:{w:28,t:6,h:22,fin:'P2'},base:{on:true,w:40,t:12,h:6,fin:'PT'},layout:'centered',font:'baskerville',cut:'vcut',sink:'black',people:1,art:[['CR-01',4,.5,.18]]}},
+  {name:'Laser scene, black',d:{type:'upright',who:'companion',granite:'midnight-black',shape:'straight',tablet:{w:42,t:8,h:28,fin:'P5'},base:{on:true,w:54,t:14,h:8,fin:'P5'},layout:'family',font:'marcellus',cut:'flat',sink:'frost',art:[['SC-01',30,.5,.27,'laser']]}},
+  {name:'Flat lawn marker',d:{type:'flat',who:'individual',granite:'dakota-mahogany',shape:'straight',tablet:{w:24,t:4,h:12,fin:'P1'},base:{on:false,w:30,t:14,h:6,fin:'PT'},layout:'centered',font:'cinzel',cut:'vcut',sink:'auto',people:1,art:[]}}
+];
+function applyPreset(p,keepNames=true){
+  const d=p.d;const keep={family:D.family,people:D.people,heading:D.heading,epitaph:D.epitaph,contact:D.contact,cem:D.cem};
+  D={...newDesign(),...keep,type:d.type,who:d.who,granite:d.granite,shape:d.shape,tablet:{...d.tablet},base:{...d.base},layout:d.layout,font:d.font,cut:d.cut,sink:d.sink,autoLayout:true,els:[]};
+  if(d.people===1&&D.people.length>1)D.people=D.people.slice(0,1);
+  if(d.people!==1&&D.people.length<2)D.people.push({...blankPerson(),first:'Mary',middle:'Elizabeth',born:'1945'});
+  autoArrange(true);
+  d.art.forEach(([ref,w,fx,fy,m])=>{const ar=AMAP[ref].vh/AMAP[ref].vw;const ww=Math.min(w,D.tablet.h*.4/ar);const hh=ww*ar;D.els.push({id:uid(),kind:'art',side:'front',ref,w:r2(ww),x:r2(D.tablet.w*fx),y:r2(Math.max(D.tablet.h*fy,1+hh/2)),rot:0,flip:false,method:m||'blast',sink:null})});
+  // move text down if art on top
+  if(d.art.length){const top=Math.max(...D.els.filter(e=>e.kind==='art').map(e=>elBox(e).y+elBox(e).h));const tx=D.els.filter(e=>e.kind==='text');const minY=Math.min(...tx.map(e=>elBox(e).y));if(minY<top+.5){const avail=D.tablet.h-1.5-(top+.6);const used=Math.max(...tx.map(e=>elBox(e).y+elBox(e).h))-minY;const k=Math.min(1,avail/used);tx.forEach(e=>{e.y=r2(top+.6+(elBox(e).y-minY)*k+(e.y-elBox(e).y)*k);e.capH=Math.max(.5,q8(e.capH*k))})}}
+}
+function presetThumb(p){
+  const save=D;const sx=JSON.stringify(save);D=JSON.parse(sx);applyPreset(p);const u={...UI};UI.ruler=false;UI.dims=false;UI.grid=false;UI.sel=null;
+  const svg=renderStone({thumb:true,tight:true,dims:false,bg:'studio'});Object.assign(UI,u);D=JSON.parse(sx);return svg;
+}
+
+function panelRender(){
+  const s=STEPS[UI.step],T=TYPES[D.type],g=G();let h=`<header><span class="eyebrow">Step ${UI.step+1} of ${STEPS.length}</span><h2>${s.title}</h2><p>${s.sub}</p></header>`;
+  if(s.id==='start'){
+    h+=grp('Start from a design',`<div class="qs">${PRESETS.map((p,i)=>`<button data-preset="${i}">${presetThumb(p)}<span>${p.name}</span></button>`).join('')}</div>`,'keeps your names');
+    h+=grp('Kind of memorial',`<div class="opts">${Object.entries(TYPES).map(([k,t])=>pbtn('type',k,D.type===k,t.label,t.blurb)).join('')}</div>`);
+    h+=grp('Who is it for',`<div class="chips">${[['individual','One person'],['companion','Two people'],['family','A family'],['pet','A pet']].map(([k,l])=>chip('who',k,D.who===k,l)).join('')}</div>`);
+  }
+  if(s.id==='stone'){
+    const fams=['all',...new Set(GRANITES.map(x=>x.family))];
+    const list=GRANITES.filter(x=>UI.gfam==='all'||x.family===UI.gfam);
+    h+=grp('Granite',`<div class="chips">${fams.map(f=>`<button class="chip" data-gfam="${f}" aria-pressed="${UI.gfam===f}">${f==='all'?'All':FAMILY[f].label}</button>`).join('')}</div>
+      <div class="sw">${list.map(x=>`<button data-set="granite" data-v="${x.id}" aria-pressed="${D.granite===x.id}"><i style="background-image:url(${granitePNG(x)})"></i>${x.name}</button>`).join('')}</div>
+      <div class="note"><b>${g.name}</b> · ${esc(g.origin)}<br>${esc(g.desc)}<br><span class="mono small">Laser etching: ${g.laser} · Lettering contrast: ${g.contrast}</span></div>`,`${GRANITES.length} colors`);
+    if(T.base)h+=grp('Base color',`<div class="chips">${chip('baseGranite','',!D.baseGranite,'Match the tablet')}${['barre-gray','midnight-black','india-red','bahama-blue','salisbury-pink'].filter(x=>x!==D.granite).map(x=>chip('baseGranite',x,D.baseGranite===x,GMAP[x].name)).join('')}</div>`);
+    h+=grp('Shape',`<div class="shapes">${T.shapes.map(k=>`<button data-set="shape" data-v="${k}" aria-pressed="${D.shape===k}"><svg viewBox="-2 -2 40 30"><path d="${shapePath(k,36,26)}" fill="${D.shape===k?'#47704C':'#9aa09b'}"/></svg>${SHAPES[k]}</button>`).join('')}</div>`);
+  }
+  if(s.id==='size'){
+    h+=grp('Common sizes',`<div class="chips">${T.sizes.map((z,i)=>`<button class="chip" data-size="${i}" aria-pressed="${D.tablet.w===z[1]&&D.tablet.h===z[3]}">${z[0]}</button>`).join('')}</div>`);
+    h+=grp('Tablet',`<div class="dims3">${num('tablet.w','Width')}${num('tablet.t','Thickness')}${num('tablet.h',D.type==='flat'||D.type==='bevel'?'Depth':'Height')}</div>
+      <label class="f"><span>Finish</span><select data-bind="tablet.fin">${TAB_FIN.map(f=>`<option value="${f[0]}" ${D.tablet.fin===f[0]?'selected':''}>${f[1]} · ${f[2]}</option>`).join('')}</select></label>
+      <div class="note mono small">${ftin(D.tablet.w)} × ${ftin(D.tablet.t)} × ${ftin(D.tablet.h)} · ${ft3(D.tablet).toFixed(2)} cu ft · ${lbs(D.tablet).toLocaleString()} lbs</div>`);
+    if(T.base){
+      h+=grp('Base',`<div class="chips">${chip('base.on','1',D.base.on,'With base')}${chip('base.on','0',!D.base.on,'No base')}</div>`+(D.base.on?`<div class="dims3">${num('base.w','Width')}${num('base.t','Thickness')}${num('base.h','Height')}</div>
+        <label class="f"><span>Base finish</span><select data-bind="base.fin">${BASE_FIN.map(f=>`<option value="${f[0]}" ${D.base.fin===f[0]?'selected':''}>${f[1]} · ${f[2]}</option>`).join('')}</select></label>
+        <div class="row"><button class="btn sm" data-fitbase="1">Size base to tablet (+12″ / +6″)</button></div>`:''));
+      if(D.base.on)h+=grp('Sub base',`<div class="chips">${chip('sub.on','1',D.sub.on,'Add sub base')}${chip('sub.on','0',!D.sub.on,'None')}</div>`+(D.sub.on?`<div class="dims3">${num('sub.w','Width')}${num('sub.t','Thickness')}${num('sub.h','Height')}</div>`:''),'for taller settings');
+    }
+    if(D.type==='cremation')h+=grp('Urn compartment',`<div class="chips">${chip('urn','1',D.urn,'Include sealed compartment')}${chip('urn','0',!D.urn,'No compartment')}</div>`);
+    const fd=foundation();
+    h+=grp('Cemetery',`<label class="f"><span>Cemetery</span><select data-bind="cem.id"><option value="">Not chosen yet</option>${CEMETERIES.map(c=>`<option value="${c.id}" ${D.cem.id===c.id?'selected':''}>${c.name} · ${c.city}</option>`).join('')}<option value="other" ${D.cem.id==='other'?'selected':''}>Another cemetery</option></select></label>
+      ${D.cem.id==='other'?txt('cem.name','Cemetery name and town'):''}
+      <div class="note">Foundation: <b class="mono">${inch(fd.w)} × ${inch(fd.t)}</b> (footprint + 4″ each side). Total weight <b class="mono">${totalWeight().toLocaleString()} lbs</b>.${D.cem.id&&D.cem.id!=='other'?' Cemetery rules shown here are sample data until ROC verifies them.':''}</div>`);
+  }
+  if(s.id==='text'){
+    const P=D.people;
+    h+=grp('Layout',`<div class="chips">${chip('layout','family',D.layout==='family','Family name on top')}${chip('layout','centered',D.layout==='centered','Full names centered')}</div><button class="btn sm" data-auto="1" style="align-self:flex-start">${D.autoLayout?'Layout fits automatically':'Re-fit layout to the stone'}</button>`);
+    h+=grp('Names and dates',`${txt('family','Family name','e.g. Meeson')}
+      ${P.map((p,i)=>`<div class="person"><div class="hd"><b>Person ${i+1}</b>${P.length>1?`<button class="btn sm ghost" data-rmp="${i}">Remove</button>`:''}</div>
+      <div class="row">${txt(`people.${i}.first`,'First')}${txt(`people.${i}.middle`,'Middle')}</div>
+      <div class="row">${txt(`people.${i}.last`,'Last (if different)')}${txt(`people.${i}.nick`,'Nickname')}</div>
+      <div class="row">${txt(`people.${i}.born`,'Born','1942 or March 4, 1942')}${txt(`people.${i}.died`,'Died','Leave blank if living')}</div></div>`).join('')}
+      ${P.length<6?`<button class="btn sm" data-addp="1" style="align-self:flex-start">+ Add a person</button>`:''}`);
+    h+=grp('Heading and epitaph',`<label class="f"><span>Heading</span><select data-bind="heading">${HEADINGS.map(x=>`<option ${D.heading===x?'selected':''} value="${esc(x)}">${x||'None'}</option>`).join('')}</select></label>
+      <label class="f"><span>Epitaph</span><input type="text" data-bind="epitaph" value="${esc(D.epitaph)}"></label>
+      <div class="chips">${EPITAPHS.map(x=>chip('epitaph',x,D.epitaph===x,x)).join('')}</div>`);
+    h+=grp('Lettering style',`<div class="fonts">${FONTS.map(f=>`<button data-set="font" data-v="${f.id}" aria-pressed="${D.font===f.id}"><em style="font-family:${esc(f.css)}">${esc(f.upper?(surname()||'Meeson').toUpperCase():(surname()||'Meeson'))}</em><span>${f.name}</span></button>`).join('')}</div>`);
+    h+=grp('How it’s cut',`<div class="opts">${CUTS.filter(c=>c[0]!=='shape').map(c=>pbtn('cut',c[0],D.cut===c[0],c[1],c[2])).join('')}</div>`);
+    h+=grp('Sinkage color',`<div class="chips">${SINK.map(c=>chip('sink',c[0],D.sink===c[0],`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c[0]==='auto'?sinkColor('auto',g.lum<.18):c[2]};margin-right:5px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)"></span>${c[1]}`)).join('')}</div>`,'paint in the cut');
+    const tl=D.els.filter(e=>e.kind==='text'&&e.side==='front');
+    h+=grp('Lines on the stone',`<div class="lines">${tl.map((e,i)=>`<button data-sel="${e.id}" aria-pressed="${UI.sel===e.id}"><span class="k">${i+1}</span><span class="t">${esc(dispText(e))}</span><span class="h">${inch(e.capH)}</span></button>`).join('')||'<div class="note">No lines yet.</div>'}</div><button class="btn sm" data-addtext="front" style="align-self:flex-start">+ Add a free text line</button>`,'letter heights');
+  }
+  if(s.id==='art'){
+    const cats=[...ART_CATS];const q=UI.artQ.trim().toLowerCase();
+    const list=ART.filter(a=>q?(a.name+' '+a.tags).toLowerCase().includes(q):a.cat===UI.artCat);
+    h+=grp('Artwork library',`<input type="text" id="artQ" placeholder="Search: rose, deer, tractor, cross…" value="${esc(UI.artQ)}">
+      <div class="chips">${cats.map(c=>`<button class="chip" data-acat="${c}" aria-pressed="${!q&&UI.artCat===c}">${c}</button>`).join('')}</div>
+      <div class="art">${list.map(a=>`<button data-addart="${a.id}" title="Add ${esc(a.name)}"><svg viewBox="${a.vb}" fill="currentColor">${a.svg}</svg>${esc(a.name)}<small>${a.id}</small></button>`).join('')||'<div class="note">No artwork matches that search.</div>'}</div>`,`${ART.length} designs`);
+    h+=grp('How new art is cut',`<div class="chips">${ART_METHODS.map(m=>`<button class="chip" data-artm="${m[0]}" aria-pressed="${(UI.artMethod||'blast')===m[0]}">${m[1]}</button>`).join('')}</div>${g.laser==='Not recommended'?`<div class="note warn">${g.name} is too light for laser etching. Sandblast or shape carve reads best on this stone.</div>`:''}`);
+    h+=grp('Portrait',`<div class="chips">${PHOTO_SIZES.map((p,i)=>`<button class="chip" data-psize="${i}">${p[0]}</button>`).join('')}</div>
+      <div class="upload" data-upload="1"><b>Upload a photo</b><br><span class="small">Placed at the chosen size. We check resolution for laser etching.</span></div>
+      <div class="note small">Laser portraits need black granite and a photo of at least 250 dpi at final size (a 5×7 needs about 1250×1750 px).</div>`);
+    h+=grp('Panels',`<div class="chips"><button class="chip" data-panel="rect">Frosted panel</button><button class="chip" data-panel="oval">Oval panel</button><button class="chip" data-panel="arch">Arch panel</button></div>`,'behind names or art');
+    if(T.base)h+=grp('Vases',`<div class="chips">${chip('vases.style','none',D.vases.style==='none','None')}${chip('vases.style','granite',D.vases.style==='granite','Granite')}${chip('vases.style','bronze',D.vases.style==='bronze','Bronze')}</div>${D.vases.style!=='none'?`<div class="chips">${chip('vases.sides','both',D.vases.sides==='both','Both sides')}${chip('vases.sides','left',D.vases.sides==='left','Left')}${chip('vases.sides','right',D.vases.sides==='right','Right')}</div>`:''}`);
+    const al=D.els.filter(e=>e.kind!=='text'&&e.side==='front');
+    if(al.length)h+=grp('On the stone',`<div class="lines">${al.map((e,i)=>`<button data-sel="${e.id}" aria-pressed="${UI.sel===e.id}"><span class="k">${i+1}</span><span class="t">${esc(e.kind==='art'?AMAP[e.ref]?.name:e.kind==='photo'?'Portrait '+e.w+'×'+e.h+'″':'Panel')}</span><span class="h">${e.kind==='art'?ART_METHODS.find(m=>m[0]===e.method)?.[1]:e.kind==='photo'?(e.method==='laser'?'Laser':'Porcelain'):'Frost'}</span></button>`).join('')}</div>`);
+  }
+  if(s.id==='back'){
+    const bk=D.els.filter(e=>e.side==='back');
+    h+=['P1','PFS'].includes(D.tablet.fin)?`<div class="note warn">Your tablet finish (${D.tablet.fin}) leaves the back unpolished. Carving on the back needs P2, P3 or P5. <button class="btn sm" data-set="tablet.fin" data-v="P2" style="margin-top:6px">Switch to P2</button></div>`:'';
+    const qb=(k,l,sub)=>`<button class="opt" data-back="${k}"><b>${l}</b><span>${sub}</span></button>`;
+    h+=grp('Quick backs',`<div class="opts">${qb('surname','Family name','Large surname across the back')}${qb('children','Children’s names','A list of names under “Children”')}${qb('scene','Scene','A landscape across the back')}${qb('clear','Plain back','Remove everything on the back')}</div>`);
+    h+=grp('Children or second inscription',`<label class="f"><span>One name per line</span><textarea id="backNames" placeholder="Robert Jr.&#10;Susan&#10;Michael">${esc(D.backNames||'')}</textarea></label><button class="btn sm" data-backnames="1" style="align-self:flex-start">Place on the back</button>`);
+    h+=`<div class="row"><button class="btn sm" data-addtext="back">+ Add text line</button><button class="btn sm" data-goart="1">+ Add artwork from library</button></div>`;
+    if(bk.length)h+=grp('On the back',`<div class="lines">${bk.map((e,i)=>`<button data-sel="${e.id}" aria-pressed="${UI.sel===e.id}"><span class="k">${i+1}</span><span class="t">${esc(e.kind==='text'?dispText(e):AMAP[e.ref]?.name||e.kind)}</span><span class="h">${e.kind==='text'?inch(e.capH):''}</span></button>`).join('')}</div>`);
+  }
+  if(s.id==='review'){
+    const ck=checks();
+    h+=grp('Production checks',`<div class="checks">${ck.map(c=>`<div class="chk ${c.lvl}"><i></i><div>${esc(c.msg)}${c.fix!==undefined?` <button data-fix='${JSON.stringify(c.fix)}'>Fix</button>`:''}</div></div>`).join('')}</div>`);
+    const showPrice=CFG.PRICING_MODE==='range'||(CFG.PRICING_MODE==='staff'&&UI.staff);
+    if(showPrice){const e=estimate();h+=grp('Sample estimate',`<div class="est"><span class="muted small">Granite, lettering, art, foundation and setting</span><b class="mono">${money(e.lo)}–${money(e.hi)}</b></div>${UI.staff?`<table class="spec">${e.lines.map(l=>`<tr><th>${esc(l[0])}</th><td class="mono">${money(l[1])}</td></tr>`).join('')}</table>`:''}<div class="note small">Sample pricing for planning. ROC confirms the final price with the proof.</div>`)}
+    h+=grp('Specification',specTable());
+    h+=`<div class="row"><button class="btn" data-proof="1">Preview the PDF</button><button class="btn" data-svg="front">True-size SVG</button></div>`;
+  }
+  if(s.id==='send'){
+    const c=D.contact,ap=D.approval;
+    h+=grp('Your details',`<div class="row">${txt('contact.first','First name')}${txt('contact.last','Last name')}</div><div class="row">${txt('contact.phone','Phone')}${txt('contact.email','Email')}</div>
+      <div class="row">${txt('contact.rel','Relationship','Spouse, son, daughter…')}<label class="f"><span>Needed by</span><input type="date" data-bind="contact.needBy" value="${esc(c.needBy)}"></label></div>
+      <div class="row">${txt('cem.section','Section')}${txt('cem.lot','Lot')}${txt('cem.grave','Grave')}</div>
+      <label class="f"><span>Notes for ROC</span><textarea data-bind="contact.notes">${esc(c.notes)}</textarea></label>`);
+    const C=[['spell','Every name is spelled correctly'],['dates','Every date is correct'],['layout','The layout, sizes and lettering are what I want'],['color','I understand granite colors on screen are a close representation']];
+    h+=grp('Proof approval',`${C.map(([k,l])=>`<label class="cbx"><input type="checkbox" data-chk="${k}" ${ap.checks[k]?'checked':''}> ${l}</label>`).join('')}
+      ${txt('approval.name','Approved by (full name)')}
+      <div class="row" style="align-items:center"><span class="small muted">Sign below</span><button class="btn sm ghost" data-clearsig="1" style="flex:0">Clear</button></div>
+      <canvas class="sig" id="sig" width="700" height="240"></canvas>`);
+    h+=`<div class="row"><button class="btn pri" data-send="1">Send design to ROC</button><button class="btn" data-proof="1">Download PDF</button></div>`;
+    if(UI.staff){
+      h+=grp('Send to production',`<div class="route">${CFG.PRODUCTION.map(p=>`<label><input type="checkbox" data-route="${p.id}" ${D.route[p.id]?'checked':''}><span><b>${p.role}</b>${p.who} · ${p.sheets}<br><code>${esc(p.email)}</code></span></label>`).join('')}</div>
+        <div class="row"><button class="btn dark" data-workorder="1">Build work orders PDF</button><button class="btn" data-mail="1">Email production</button></div>
+        <div class="row"><button class="btn sm" data-svg="front">Front face SVG 1:1</button>${D.els.some(e=>e.side==='back')?'<button class="btn sm" data-svg="back">Back face SVG 1:1</button>':''}<button class="btn sm" data-copy="1">Copy work order text</button><button class="btn sm" data-json="1">Design file</button></div>
+        <div class="note small">SVG exports are true size (1 unit = 1 inch) for stencil plotters and laser software. Production emails open in your mail app; attach the work orders PDF before sending.</div>`,'staff');
+    }
+  }
+  $('#pbody').innerHTML=h;
+  $('#prevBtn').disabled=UI.step===0;
+  $('#nextBtn').textContent=UI.step===STEPS.length-1?'Send to ROC':'Next: '+STEPS[UI.step+1].label;
+  if(s.id==='send')bindSig();
+}
+function specTable(){
+  const t=D.tablet,b=D.base,s=D.sub,T=TYPES[D.type],g=G();
+  const rows=[['Memorial',`${T.label} · ${SHAPES[D.shape]}`],['Granite',g.name+(hasBase()&&D.baseGranite?` · base ${GB().name}`:'')],
+    ['Tablet',`${ftin(t.w)} × ${ftin(t.t)} × ${ftin(t.h)} · ${t.fin} (${FINDESC[t.fin]})`]];
+  if(hasBase())rows.push(['Base',`${ftin(b.w)} × ${ftin(b.t)} × ${ftin(b.h)} · ${b.fin} (${FINDESC[b.fin]})`]);
+  if(hasSub())rows.push(['Sub base',`${ftin(s.w)} × ${ftin(s.t)} × ${ftin(s.h)} · ${FINDESC[s.fin]||s.fin}`]);
+  rows.push(['Weight',`${totalWeight().toLocaleString()} lbs total`],['Lettering',`${FMAP[D.font].name} · ${CUTMAP[D.cut]} · ${SINK.find(x=>x[0]===D.sink)[1]} sinkage`],
+    ['Artwork',D.els.filter(e=>e.kind==='art').map(e=>`${AMAP[e.ref]?.name} (${inch(e.w)})`).join(', ')||'None'],
+    ['Portrait',D.els.filter(e=>e.kind==='photo').map(e=>`${e.method==='laser'?'Laser':'Porcelain'} ${e.w}×${e.h}″`).join(', ')||'None'],
+    ['Vases',D.vases.style==='none'?'None':`${D.vases.style} · ${D.vases.sides}`],['Back',D.els.some(e=>e.side==='back')?`${D.els.filter(e=>e.side==='back').length} items`:'Plain'],
+    ['Cemetery',cemName()||'Not chosen']);
+  return`<table class="spec">${rows.map(r=>`<tr><th>${r[0]}</th><td>${esc(r[1])}</td></tr>`).join('')}</table>`;
+}
+function cemName(){const c=CEMETERIES.find(x=>x.id===D.cem.id);return c?`${c.name}, ${c.city}`:D.cem.name||''}
+
+/* signature pad */
+function bindSig(){
+  const c=$('#sig');if(!c)return;const x=c.getContext('2d');x.lineWidth=3;x.lineCap='round';x.strokeStyle='#1d2b4f';
+  if(D.approval.sig){const im=new Image();im.onload=()=>x.drawImage(im,0,0);im.src=D.approval.sig}
+  let on=false,last=null;const pt=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+  c.onpointerdown=e=>{on=true;last=pt(e);c.setPointerCapture(e.pointerId)};
+  c.onpointermove=e=>{if(!on)return;const p=pt(e);x.beginPath();x.moveTo(...last);x.lineTo(...p);x.stroke();last=p};
+  c.onpointerup=()=>{if(!on)return;on=false;D.approval.sig=c.toDataURL('image/png');D.approval.date=new Date().toLocaleDateString();commit(true)};
+}
+
+/* ============================================================ panel events */
+let PHOTO_TARGET=null,PHOTO_SIZE=PHOTO_SIZES[2];
+function bindPanel(){
+  const pb=$('#pbody');
+  pb.addEventListener('input',ev=>{
+    const t=ev.target;
+    if(t.id==='artQ'){UI.artQ=t.value;const pos=t.selectionStart;panelRender();const n=$('#artQ');n.focus();n.setSelectionRange(pos,pos);return}
+    if(t.id==='backNames'){D.backNames=t.value;return}
+    const p=t.dataset.bind;if(!p)return;
+    let v=t.dataset.num?parseFloat(t.value):t.value;if(t.dataset.num&&!(v>0))return;
+    setPath(p,v);
+    if(t.dataset.num){const sm=t.parentElement.querySelector('small');if(sm)sm.textContent=ftin(v)}
+    afterChange(p,false);
+  });
+  pb.addEventListener('change',ev=>{
+    const t=ev.target;
+    if(t.dataset.chk){D.approval.checks[t.dataset.chk]=t.checked;commit(true);return}
+    if(t.dataset.route){D.route[t.dataset.route]=t.checked;commit(true);return}
+    if(t.tagName==='SELECT'&&t.dataset.bind){setPath(t.dataset.bind,t.value);afterChange(t.dataset.bind,true)}
+  });
+  pb.addEventListener('click',ev=>{
+    const b=ev.target.closest('button,[data-upload]');if(!b)return;const d=b.dataset;
+    if(d.set!==undefined){let v=d.v;if(['base.on','sub.on','urn'].includes(d.set))v=v==='1';setPath(d.set,v);afterChange(d.set,true);return}
+    if(d.preset){applyPreset(PRESETS[+d.preset]);commit(true);renderAll();toast('Design loaded. Your names were kept.');return}
+    if(d.gfam){UI.gfam=d.gfam;panelRender();return}
+    if(d.size){const z=TYPES[D.type].sizes[+d.size];D.tablet={...D.tablet,w:z[1],t:z[2],h:z[3]};if(z[4])D.base={...D.base,w:z[4],t:z[5],h:z[6]};afterChange('tablet',true);return}
+    if(d.fitbase){D.base.w=D.tablet.w+12;D.base.t=D.tablet.t+6;afterChange('base',true);return}
+    if(d.auto){D.autoLayout=true;autoArrange(true);commit(true);renderAll();return}
+    if(d.addp){D.people.push(blankPerson());afterChange('people',true);return}
+    if(d.rmp){D.people.splice(+d.rmp,1);afterChange('people',true);return}
+    if(d.sel){UI.sel=d.sel;UI.side=D.els.find(e=>e.id===d.sel)?.side||UI.side;inspRender();stageRender();panelRender();return}
+    if(d.addtext){const side=d.addtext;const e={id:uid(),kind:'text',side,slot:null,text:side==='back'?'Second inscription':'New line',capH:1.25,x:D.tablet.w/2,y:D.tablet.h*.5,font:null,cut:null,sink:null,ls:null,arc:0};D.els.push(e);UI.sel=e.id;UI.side=side;commit(true);renderAll();setTimeout(()=>{const n=$('#i-text');n&&(n.focus(),n.select())},30);return}
+    if(d.acat){UI.artCat=d.acat;UI.artQ='';panelRender();return}
+    if(d.artm){UI.artMethod=d.artm;panelRender();return}
+    if(d.addart){addArt(d.addart);return}
+    if(d.psize){PHOTO_SIZE=PHOTO_SIZES[+d.psize];PHOTO_TARGET=null;$('#photoIn').click();return}
+    if(d.upload){PHOTO_SIZE=PHOTO_SIZE||PHOTO_SIZES[2];PHOTO_TARGET=null;$('#photoIn').click();return}
+    if(d.panel){const w=Math.min(D.tablet.w*.6,24),h=d.panel==='rect'?D.tablet.h*.3:D.tablet.h*.45;const e={id:uid(),kind:'panel',side:UI.side,shape:d.panel,w:r2(w),h:r2(h),x:D.tablet.w/2,y:D.tablet.h*.55,finish:'frost',sink:null};D.els.unshift(e);UI.sel=e.id;commit(true);renderAll();return}
+    if(d.back){backPreset(d.back);return}
+    if(d.backnames){const names=(D.backNames||'').split('\n').map(s=>s.trim()).filter(Boolean);if(!names.length)return toast('Type at least one name.');D.els=D.els.filter(e=>!(e.side==='back'&&e.slot&&e.slot.startsWith('bk')));const W=D.tablet.w,H=D.tablet.h;const cap=Math.min(1.5,(H*.55)/(names.length*1.7+1.5));D.els.push({id:uid(),kind:'text',side:'back',slot:'bkh',text:'Children',capH:q8(cap*1.1),x:W/2,y:H*.25,font:null,cut:null,sink:null,ls:null,arc:0});names.forEach((n,i)=>D.els.push({id:uid(),kind:'text',side:'back',slot:'bk'+i,text:n,capH:q8(cap),x:W/2,y:r2(H*.25+cap*2.2+i*cap*1.7),font:null,cut:null,sink:null,ls:null,arc:0}));UI.side='back';commit(true);renderAll();return}
+    if(d.goart){UI.side='back';goStep(4);UI.side='back';renderAll();toast('Art you add now goes on the back.');return}
+    if(d.fix){const f=JSON.parse(d.fix);if(typeof f==='number')goStep(f);else if(f.sel){const e=D.els.find(x=>x.id===f.sel);UI.side=e?.side||'front';UI.sel=f.sel;goStep(e?.side==='back'?5:e?.kind==='text'?3:4);UI.side=e?.side||'front';UI.sel=f.sel;inspRender();stageRender()}return}
+    if(d.proof){buildPDF('proof');return}
+    if(d.workorder){buildPDF('work');return}
+    if(d.svg){download(`${D.id||'ROC-draft'}-${d.svg}-face-1to1.svg`,new Blob([faceSVG(d.svg)],{type:'image/svg+xml'}));return}
+    if(d.json){saveFile();return}
+    if(d.copy){copyText(workOrderText());return}
+    if(d.mail){mailProduction();return}
+    if(d.send){sendToROC();return}
+    if(d.clearsig){D.approval.sig='';commit(true);const c=$('#sig');c.getContext('2d').clearRect(0,0,c.width,c.height);return}
+  });
+}
+function afterChange(path,rerenderPanel){
+  if(path==='type'){const T=TYPES[D.type];if(!T.shapes.includes(D.shape))D.shape=T.shapes[0];const z=T.sizes[Math.min(1,T.sizes.length-1)];D.tablet={...D.tablet,w:z[1],t:z[2],h:z[3]};if(z[4])D.base={...D.base,on:true,w:z[4],t:z[5],h:z[6]};if(D.type==='pet'){D.who='pet'}if(['flat','bevel','pet'].includes(D.type))D.vases.style='none'}
+  if(path==='who'){if(D.who==='individual'&&D.people.length>1)D.people=D.people.slice(0,1);if((D.who==='companion'||D.who==='family')&&D.people.length<2)D.people.push(blankPerson());D.layout=D.who==='individual'||D.who==='pet'?'centered':'family'}
+  const relayout=/^(family|people|heading|epitaph|layout|font|shape|tablet|type|who)/.test(path);
+  if(relayout)autoArrange(path==='layout'||path==='shape'||path.startsWith('tablet.w')||path.startsWith('tablet.h')||path==='type'||path==='font');
+  commit(!rerenderPanel?false:true);
+  stageRender();specRender();railRender();inspRender();
+  if(rerenderPanel)panelRender();
+  else if(path.startsWith('people')||path==='family'){const l=$('#pbody .lines');if(l){const tl=D.els.filter(e=>e.kind==='text'&&e.side==='front');l.innerHTML=tl.map((e,i)=>`<button data-sel="${e.id}"><span class="k">${i+1}</span><span class="t">${esc(dispText(e))}</span><span class="h">${inch(e.capH)}</span></button>`).join('')}}
+}
+function addArt(ref){
+  const a=AMAP[ref];const W=D.tablet.w,H=D.tablet.h;const scene=a.cat==='Scenes';
+  const w=scene?Math.min(W*.7,H*.38/(a.vh/a.vw)):Math.min(W*.18,6);
+  const m=UI.artMethod||(scene&&G().laser!=='Not recommended'?'laser':'blast');
+  const e={id:uid(),kind:'art',side:UI.side,ref,w:r2(w),x:W/2,y:r2(scene?1+w*(a.vh/a.vw)/2:H*.22),rot:0,flip:false,method:m,sink:null};
+  if(UI.side==='front'&&!scene){const n=D.els.filter(x=>x.kind==='art'&&x.side==='front').length;if(n%2===1){e.x=r2(W*.17);e.y=r2(H*.5)}else if(n>0){e.x=r2(W*.83);e.y=r2(H*.5);e.flip=true}}
+  if(!scene){const tx=D.els.filter(x=>x.side===UI.side&&x.kind!=='panel');if(tx.length){const bs=tx.map(elBox);const minX=Math.min(...bs.map(b=>b.x)),maxX=Math.max(...bs.map(b=>b.x+b.w)),minY=Math.min(...bs.map(b=>b.y)),maxY=Math.max(...bs.map(b=>b.y+b.h));
+    const hit=b=>!(b.x+b.w<minX||b.x>maxX||b.y+b.h<minY||b.y>maxY);
+    if(hit(elBox(e))){const gapT=minY-1,gapL=minX-1,gapR=W-1-maxX;
+      if(gapT>=3){e.x=W/2;e.w=r2(Math.min(e.w,(gapT-.5)/artAR(e)));e.y=r2(.75+gapT/2)}
+      else if(Math.max(gapL,gapR)>=2.5){const left=gapL>=gapR;const g=left?gapL:gapR;e.w=r2(Math.min(e.w,g-.5,(maxY-minY)/artAR(e)));e.x=r2(left?1+g/2:W-1-g/2);e.y=r2((minY+maxY)/2);e.flip=!left&&a.cat!=='Faith'}
+      else toast('No open space left. Drag the art where you want it and shrink the lettering.')}}}
+  D.els.push(e);UI.sel=e.id;commit(true);renderAll();toast(`${a.name} added. Drag to place, pull the corner to resize.`);
+}
+function backPreset(k){
+  const W=D.tablet.w,H=D.tablet.h;D.els=D.els.filter(e=>e.side!=='back');UI.side='back';
+  if(k==='surname')D.els.push({id:uid(),kind:'text',side:'back',slot:null,text:surname()||'FAMILY',capH:q8(Math.min(5,H*.18,W/(Math.max(4,surname().length)*1.15))),x:W/2,y:H*.5,font:null,cut:null,sink:null,ls:null,arc:0});
+  if(k==='children'){D.backNames=D.backNames||'Robert Jr.\nSusan\nMichael';commit(true);renderAll();$('[data-backnames]')?.click();return}
+  if(k==='scene'){D.els.push({id:uid(),kind:'art',side:'back',ref:'SC-01',w:r2(W*.78),x:W/2,y:H*.42,rot:0,flip:false,method:G().laser!=='Not recommended'?'laser':'blast',sink:null});D.els.push({id:uid(),kind:'text',side:'back',slot:null,text:surname()||'FAMILY',capH:q8(Math.min(3,H*.11)),x:W/2,y:H*.8,font:null,cut:null,sink:null,ls:null,arc:0})}
+  commit(true);renderAll();
+}
+
+/* photo upload */
+function onPhoto(file){
+  if(!file)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{
+    const id='a'+uid();
+    // downscale very large images to 3000px max to keep files light
+    let src=rd.result,pw=im.naturalWidth,ph=im.naturalHeight;
+    const MAX=3000;if(Math.max(pw,ph)>MAX){const k=MAX/Math.max(pw,ph);const c=document.createElement('canvas');c.width=Math.round(pw*k);c.height=Math.round(ph*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);src=c.toDataURL('image/jpeg',.9);ASSETS[id]={src,name:file.name,pxW:pw,pxH:ph,stored:[c.width,c.height]}}
+    else ASSETS[id]={src,name:file.name,pxW:pw,pxH:ph};
+    let e=PHOTO_TARGET&&D.els.find(x=>x.id===PHOTO_TARGET);
+    if(e)e.asset=id;else{const [lab,w,h,shape]=PHOTO_SIZE;e={id:uid(),kind:'photo',side:UI.side,asset:id,w,h,shape,method:G().laser==='Not recommended'?'porcelain':'laser',x:r2(D.tablet.w*.2+w/2-1),y:r2(D.tablet.h*.5)};if(e.x-e.w/2<1.5)e.x=r2(1.5+e.w/2);D.els.push(e)}
+    UI.sel=e.id;commit(true);renderAll();const dpi=photoDPI(e);toast(`Photo placed at ${e.w}×${e.h}″ · ${dpi} dpi ${dpi>=250?'(great for laser)':dpi>=200?'(acceptable)':'(too low for laser at this size)'}`);
+  };im.src=rd.result};rd.readAsDataURL(file);
+}
+
+/* ============================================================ outputs */
+function brief(){
+  const t=D.tablet,b=D.base,s=D.sub,g=G(),c=D.contact,L=[];
+  const sec=(h,...v)=>{L.push(h);v.filter(Boolean).forEach(x=>L.push('  '+x));L.push('')};
+  sec(`ROC MONUMENT DESIGN ${D.id||'(draft)'}`,new Date().toLocaleString());
+  sec('FAMILY CONTACT',`${c.first} ${c.last}`.trim(),c.phone,c.email,c.rel&&`Relationship: ${c.rel}`,c.needBy&&`Needed by: ${c.needBy}`);
+  sec('GRANITE',`${g.name}${hasBase()&&D.baseGranite?` · Base: ${GB().name}`:''}`);
+  sec('STONE',`${TYPES[D.type].label} · ${SHAPES[D.shape]}`,`Tablet ${ftin(t.w)} x ${ftin(t.t)} x ${ftin(t.h)} (${t.w}" x ${t.t}" x ${t.h}") ${t.fin} — ${FINDESC[t.fin]} — ${lbs(t)} lbs`,
+    hasBase()&&`Base ${ftin(b.w)} x ${ftin(b.t)} x ${ftin(b.h)} (${b.w}" x ${b.t}" x ${b.h}") ${b.fin} — ${FINDESC[b.fin]} — ${lbs(b)} lbs`,
+    hasSub()&&`Sub base ${ftin(s.w)} x ${ftin(s.t)} x ${ftin(s.h)} — ${lbs(s)} lbs`,`Total ${totalWeight()} lbs · Overall height ${ftin(overallH())}`,D.vases.style!=='none'&&`Vases: ${D.vases.style}, ${D.vases.sides}`,D.urn&&D.type==='cremation'&&'Sealed urn compartment');
+  ['front','back'].forEach(side=>{const els=D.els.filter(e=>e.side===side);if(!els.length)return;
+    sec(`${side.toUpperCase()} — CARVING SCHEDULE (x,y = center from tablet top-left, inches)`,...els.map((e,i)=>{const bb=elBox(e);
+      if(e.kind==='text')return`${i+1}. "${dispText(e)}" — ${fontOf(e).name}, ${inch(e.capH)} letters, ${CUTMAP[e.cut||D.cut]}, ${SINK.find(x=>x[0]===(e.sink||D.sink))[1]} sinkage — ${r2(bb.w)}" long at x ${r2(e.x)}, y ${r2(e.y)}${e.arc?`, arched ${e.arc}"`:''}`;
+      if(e.kind==='art')return`${i+1}. ART ${e.ref} ${AMAP[e.ref]?.name} — ${ART_METHODS.find(m=>m[0]===e.method)[1]}, ${r2(e.w)}" x ${r2(bb.h)}" at x ${r2(e.x)}, y ${r2(e.y)}${e.flip?', mirrored':''}${e.rot?`, rotated ${e.rot}°`:''}`;
+      if(e.kind==='photo')return`${i+1}. PORTRAIT ${e.method} ${e.shape} ${e.w}" x ${e.h}" at x ${r2(e.x)}, y ${r2(e.y)} — ${e.asset?`${ASSETS[e.asset]?.name}, ${photoDPI(e)} dpi`:'PHOTO NEEDED'}`;
+      return`${i+1}. PANEL ${e.shape} ${e.finish} ${e.w}" x ${e.h}" at x ${r2(e.x)}, y ${r2(e.y)}`}))});
+  sec('CEMETERY',cemName()||'Not chosen',(D.cem.section||D.cem.lot)&&`Section ${D.cem.section||'—'} · Lot ${D.cem.lot||'—'} · Grave ${D.cem.grave||'—'}`,`Foundation ${inch(foundation().w)} x ${inch(foundation().t)}`);
+  const ck=checks().filter(x=>x.lvl==='err'||x.lvl==='warn');if(ck.length)sec('FLAGS',...ck.map(x=>'• '+x.msg));
+  sec('APPROVAL',D.approval.name?`Approved by ${D.approval.name} ${D.approval.date||''}`:'Not yet approved',D.approval.sig?'Signature captured':'');
+  if(c.notes)sec('NOTES',c.notes);
+  return L.join('\n').trim();
+}
+function workOrderText(){return brief()}
+function payload(png,pdf){
+  const t=D.tablet;
+  return{lead_type:'MONUMENT_DESIGN',design_id:D.id,submitted_at:new Date().toISOString(),source:'rocmemorials.com/designer',
+    contact:{first_name:D.contact.first,last_name:D.contact.last,phone:D.contact.phone,email:D.contact.email,relationship:D.contact.rel},needed_by:D.contact.needBy,
+    stone:{type:D.type,shape:D.shape,granite:G().name,base_granite:GB().name,tablet_in:t,base_in:hasBase()?D.base:null,sub_base_in:hasSub()?D.sub:null,total_lbs:totalWeight(),overall_height_in:overallH(),foundation_in:foundation(),vases:D.vases},
+    lettering:{font:FMAP[D.font].name,cut:CUTMAP[D.cut],sinkage:D.sink},
+    elements:D.els.map(e=>({side:e.side,kind:e.kind,text:e.kind==='text'?dispText(e):undefined,art:e.ref,method:e.kind==='text'?(e.cut||D.cut):e.method,letter_height_in:e.capH,width_in:r2(elBox(e).w),height_in:r2(elBox(e).h),center_x_in:e.x,center_y_in:e.y,font:e.kind==='text'?fontOf(e).name:undefined,photo_dpi:e.kind==='photo'?photoDPI(e):undefined})),
+    cemetery:{name:cemName(),section:D.cem.section,lot:D.cem.lot,grave:D.cem.grave},approval:{name:D.approval.name,date:D.approval.date,checks:D.approval.checks,signed:!!D.approval.sig},
+    production_routing:CFG.PRODUCTION.filter(p=>D.route[p.id]).map(p=>({role:p.role,email:p.email})),
+    estimate:(()=>{const e=estimate();return{low:Math.round(e.lo),high:Math.round(e.hi),mode:'sample'}})(),
+    flags:checks().filter(x=>x.lvl==='err'||x.lvl==='warn').map(x=>x.msg),brief:brief(),
+    ghl:{pipeline:'ROC Memorial Sales',stage:'Design Submitted',tags:['website','monument-designer','granite:'+D.granite,'type:'+D.type,D.els.some(e=>e.method==='laser'||(e.kind==='text'&&(e.cut||D.cut)==='laser'))?'laser':null].filter(Boolean)},
+    preview_png:png||null,proof_pdf:pdf||null};
+}
+const newId=()=>'ROC-'+new Date().getFullYear().toString().slice(2)+'-'+(10000+Math.floor(Math.random()*89999));
+
+/* SVG → PNG with embedded web fonts so lettering renders in exports */
+let FONTCSS=null;
+async function fontCSS(){
+  if(FONTCSS!==null)return FONTCSS;
+  try{
+    const href=$('#gf').href;const css=await (await fetch(href)).text();
+    const blocks=css.split('/* ').filter(b=>b.startsWith('latin */'));
+    const out=[];
+    for(const b of blocks){const m=b.match(/url\((https:[^)]+)\)/);if(!m)continue;const r=await fetch(m[1]);const buf=await r.arrayBuffer();let bin='';const u=new Uint8Array(buf);for(let i=0;i<u.length;i+=8192)bin+=String.fromCharCode.apply(null,u.subarray(i,i+8192));
+      out.push(b.slice(b.indexOf('@font-face')).replace(m[1],'data:font/woff2;base64,'+btoa(bin)).replace(/unicode-range:[^;]+;/,''))}
+    FONTCSS=out.join('\n');
+  }catch(e){FONTCSS=''}
+  return FONTCSS;
+}
+async function svgToPng(svg,pxW){
+  const css=await fontCSS();
+  if(css)svg=svg.replace(/<defs>/,`<defs><style>${css}</style>`);
+  return new Promise(res=>{const m=svg.match(/viewBox="([^"]+)"/);const v=m[1].split(' ').map(Number);const H=Math.round(pxW*v[3]/v[2]);
+    svg=svg.replace('<svg ',`<svg width="${pxW}" height="${H}" `);
+    const img=new Image();const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
+    img.onload=()=>{const c=document.createElement('canvas');c.width=pxW;c.height=H;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,pxW,H);x.drawImage(img,0,0,pxW,H);URL.revokeObjectURL(url);res({src:c.toDataURL('image/jpeg',.9),w:pxW,h:H})};
+    img.onerror=()=>{URL.revokeObjectURL(url);res(null)};img.src=url});
+}
+const LOGO=document.querySelector('.top img').src;
+
+async function buildPDF(kind,silent){
+  if(!window.jspdf){toast('The PDF tool did not load. Check the connection and try again.');return null}
+  if(!D.id)D.id=newId();
+  toast(kind==='work'?'Building work orders…':'Building the proof…');
+  const saveUI={...UI};UI.ruler=false;UI.grid=false;UI.sel=null;
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'letter'});
+  const asc=t=>String(t).replace(/[⅛¼⅜½⅝¾⅞]/g,c=>' '+{'⅛':'1/8','¼':'1/4','⅜':'3/8','½':'1/2','⅝':'5/8','¾':'3/4','⅞':'7/8'}[c]).replace(/″/g,'"').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/✓/g,'X').replace(/ +"/g,'"').replace(/^ /,'');
+  const _t=doc.text.bind(doc);doc.text=(t,...a)=>_t(Array.isArray(t)?t.map(asc):asc(t),...a);
+  const _s=doc.splitTextToSize.bind(doc);doc.splitTextToSize=(t,...a)=>_s(asc(t),...a);const PW=612,PH=792,M=40;
+  const ink=[36,39,36],soft=[110,116,111],green=[71,112,76];
+  const head=(title,sub)=>{doc.addImage(LOGO,'PNG',M,M-6,112,29);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(...ink);doc.text(title,PW-M,M+6,{align:'right'});doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...soft);doc.text(`${D.id} · ${new Date().toLocaleDateString()} · ${sub}`,PW-M,M+19,{align:'right'});doc.setDrawColor(...green);doc.setLineWidth(1.2);doc.line(M,M+30,PW-M,M+30)};
+  const foot=()=>{doc.setFontSize(7.5);doc.setTextColor(...soft);doc.text(`${CFG.brand} · ${CFG.address} · ${CFG.phone} · ${CFG.email}`,PW/2,PH-22,{align:'center'})};
+  const img=async(svg,x,y,w,maxH)=>{const p=await svgToPng(svg,1600);if(!p)return y;let h=w*p.h/p.w,ww=w;if(maxH&&h>maxH){h=maxH;ww=h*p.w/p.h}doc.addImage(p.src,'JPEG',x+(w-ww)/2,y,ww,h);return y+h};
+  const table=(x,y,cols,rows,opt={})=>{const fs=opt.fs||8.5;doc.setFontSize(fs);let yy=y;
+    doc.setFont('helvetica','bold');doc.setTextColor(...soft);let cx=x;cols.forEach(c=>{doc.text(c[0],cx+3,yy+fs);cx+=c[1]});yy+=fs+6;doc.setDrawColor(200);doc.line(x,yy-2,x+cols.reduce((a,c)=>a+c[1],0),yy-2);
+    doc.setFont('helvetica','normal');doc.setTextColor(...ink);
+    rows.forEach(r=>{let cx=x,mh=0;const cells=r.map((v,i)=>{const L=doc.splitTextToSize(String(v??''),cols[i][1]-6);mh=Math.max(mh,L.length);return L});
+      if(yy+mh*(fs+2.5)>PH-50){doc.addPage();yy=M+10}
+      cells.forEach((L,i)=>{doc.text(L,cx+3,yy+fs);cx+=cols[i][1]});yy+=mh*(fs+2.5)+5;doc.setDrawColor(230);doc.line(x,yy-2,x+cols.reduce((a,c)=>a+c[1],0),yy-2)});return yy};
+  const kv=(x,y,rows,w)=>table(x,y,[['Item',w*.3],['Specification',w*.7]],rows);
+  const t=D.tablet,b=D.base,s=D.sub,g=G();
+  const stoneRows=[['Memorial',`${TYPES[D.type].label} · ${SHAPES[D.shape]}`],['Granite',g.name+(hasBase()&&D.baseGranite?` (base: ${GB().name})`:'')],['Tablet',`${ftin(t.w)} × ${ftin(t.t)} × ${ftin(t.h)}   (${t.w}" × ${t.t}" × ${t.h}")   ${t.fin}: ${FINDESC[t.fin]}`]];
+  if(hasBase())stoneRows.push(['Base',`${ftin(b.w)} × ${ftin(b.t)} × ${ftin(b.h)}   (${b.w}" × ${b.t}" × ${b.h}")   ${b.fin}: ${FINDESC[b.fin]}`]);
+  if(hasSub())stoneRows.push(['Sub base',`${ftin(s.w)} × ${ftin(s.t)} × ${ftin(s.h)}   ${FINDESC[s.fin]||s.fin}`]);
+  stoneRows.push(['Weight',`Tablet ${lbs(t)} lbs${hasBase()?` · Base ${lbs(b)} lbs`:''}${hasSub()?` · Sub ${lbs(s)} lbs`:''} · Total ${totalWeight()} lbs`]);
+
+  // PAGE: proof
+  if(kind==='proof'||kind==='work'){
+    head('Design proof','For family approval');
+    let y=M+44;
+    y=await img(renderStone({side:'front',bg:'studio',dims:true}),M,y,PW-2*M,330)+8;
+    if(D.els.some(e=>e.side==='back')){doc.setFontSize(8);doc.setTextColor(...soft);doc.text('Back of stone shown on the next page.',M,y+4);y+=10}
+    const insc=D.els.filter(e=>e.side==='front'&&e.kind==='text').map(e=>dispText(e)).join('  /  ');
+    y=kv(M,y+6,[...stoneRows,['Inscription',insc],['Lettering',`${FMAP[D.font].name} · ${CUTMAP[D.cut]} · ${SINK.find(x=>x[0]===D.sink)[1]} sinkage`],['Cemetery',cemName()||'—']],PW-2*M);
+    // approval block
+    y=Math.max(y+10,PH-170);
+    doc.setDrawColor(...green);doc.setLineWidth(.8);doc.roundedRect(M,y,PW-2*M,112,4,4);
+    doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(...ink);doc.text('Family approval',M+12,y+18);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...soft);
+    const ap=D.approval;['Every name is spelled correctly','Every date is correct','Layout, sizes and lettering approved','Granite color on screen is a representation'].forEach((l,i)=>{const k=['spell','dates','layout','color'][i];doc.rect(M+12,y+28+i*13,7,7);if(ap.checks[k]){doc.setTextColor(...green);doc.text('✓',M+13,y+34+i*13);doc.setTextColor(...soft)}doc.text(l,M+24,y+34+i*13)});
+    if(ap.sig)doc.addImage(ap.sig,'PNG',PW-M-230,y+16,170,58);
+    doc.setDrawColor(150);doc.line(PW-M-240,y+78,PW-M-12,y+78);doc.text(`Signed: ${ap.name||''}`,PW-M-240,y+90);doc.text(`Date: ${ap.date||''}`,PW-M-90,y+90);
+    doc.setFontSize(7);doc.text('Proof for approval only. Nothing is cut until ROC receives a signed proof. Granite colors are representations; see a sample in the showroom.',M+12,y+104);
+    foot();
+    if(D.els.some(e=>e.side==='back')){doc.addPage();head('Design proof · back','For family approval');await img(renderStone({side:'back',bg:'studio',dims:true}),M,M+44,PW-2*M,560);foot()}
+  }
+  if(kind==='work'){
+    // PAGE: granite order
+    doc.addPage();head('Granite order','To: granite supplier');
+    let y=M+44;
+    doc.setFontSize(9);doc.setTextColor(...ink);doc.text(`Please quote / produce the following blank. Customer: ${D.contact.last||D.family||'—'}.  Needed by: ${D.contact.needBy||'ASAP'}`,M,y+4);y+=14;
+    y=kv(M,y,[...stoneRows,['Vases',D.vases.style==='none'?'None':`${D.vases.style} · ${D.vases.sides==='both'?'2':'1'} (${D.vases.sides})`],['Quantity','1 set'],['Notes','Tablet centered on base. Polish codes per standard industry definitions above. Bottom of tablet and top of base sawn flat for setting.']],PW-2*M)+8;
+    const w1=(PW-2*M)*.68;
+    const yA=await img(renderStone({side:'front',mode:'shop',bg:'white',blank:true}),M,y,w1,330);
+    await img(sideElevation(),M+w1+10,y,(PW-2*M)-w1-10,330);
+    doc.setFontSize(7.5);doc.setTextColor(...soft);doc.text('Front elevation and side profile. Dimensions in feet-inches.',M,yA+12);
+    foot();
+    // PAGE: lettering & carving
+    for(const side of ['front','back']){
+      const els=D.els.filter(e=>e.side===side);if(!els.length)continue;
+      doc.addPage();head(`Lettering & carving · ${side}`,'To: stencil room / sandblast');
+      let y=M+44;
+      y=await img(renderStone({side,mode:'shop',bg:'white',numbers:true,ruler:true}),M,y,PW-2*M,300)+8;
+      doc.setFontSize(7.5);doc.setTextColor(...soft);doc.text(`Positions are the center of each item, measured from the top-left corner of the ${side} face. Tablet face ${t.w}" × ${t.h}". Sinkage default: ${SINK.find(x=>x[0]===D.sink)[1]}.`,M,y);y+=10;
+      y=table(M,y,[['#',18],['Content',132],['Style',84],['Height',44],['Cut / method',76],['Sinkage',50],['Width',44],['X',38],['Y',38]],
+        els.map((e,i)=>{const bb=elBox(e);
+          if(e.kind==='text')return[i+1,dispText(e),fontOf(e).name+(e.arc?` · arch ${e.arc}"`:''),inch(e.capH),CUTMAP[e.cut||D.cut],SINK.find(x=>x[0]===(e.sink||D.sink))[1],r2(bb.w)+'"',r2(e.x),r2(e.y)];
+          if(e.kind==='art')return[i+1,`${e.ref} ${AMAP[e.ref]?.name}${e.flip?' (mirrored)':''}${e.rot?` (rot ${e.rot}°)`:''}`,'Artwork',r2(bb.h)+'"',ART_METHODS.find(m=>m[0]===e.method)[1],SINK.find(x=>x[0]===(e.sink||D.sink))[1],r2(e.w)+'"',r2(e.x),r2(e.y)];
+          if(e.kind==='photo')return[i+1,`Portrait · ${e.asset?ASSETS[e.asset]?.name:'photo needed'}`,e.shape,e.h+'"',e.method==='laser'?'Laser etch':'Porcelain',`—`,e.w+'"',r2(e.x),r2(e.y)];
+          return[i+1,`Panel (${e.shape})`,'Panel',e.h+'"',e.finish==='steeled'?'Steeled':'Frosted','—',e.w+'"',r2(e.x),r2(e.y)]}));
+      foot();
+    }
+    // PAGE: laser
+    const lz=D.els.filter(e=>e.method==='laser'||(e.kind==='text'&&(e.cut||D.cut)==='laser'));
+    if(lz.length){
+      doc.addPage();head('Laser etching sheet','To: laser etching artist');
+      let y=M+44;
+      if(g.laser==='Not recommended'){doc.setTextColor(155,47,42);doc.setFontSize(9);doc.text(`WARNING: ${g.name} is not recommended for laser etching. Confirm with ROC before etching.`,M,y+4);y+=14}
+      y=await img(renderStone({side:lz[0].side,bg:'white',hilite:'laser'}),M,y,PW-2*M,250)+10;
+      for(const e of lz){
+        if(y>PH-170){foot();doc.addPage();head('Laser etching sheet','continued');y=M+44}
+        const bb=elBox(e);let thumb=null;
+        if(e.kind==='photo'&&e.asset)thumb=ASSETS[e.asset].src;
+        else if(e.kind==='art'){const a=AMAP[e.ref];const p=await svgToPng(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${a.vb}"><defs></defs><g fill="#111">${a.svg}</g></svg>`,400);thumb=p&&p.src}
+        if(thumb){try{doc.addImage(thumb,'JPEG',M,y,110,110*(bb.h/bb.w)>140?140:110*(bb.h/bb.w))}catch(err){}}
+        const rows=[['Item',e.kind==='photo'?'Laser-etched portrait':e.kind==='art'?`${e.ref} ${AMAP[e.ref]?.name}`:`Text: ${dispText(e)}`],['Side',e.side],['Etch size',`${r2(bb.w)}" wide × ${r2(bb.h)}" tall${e.kind==='photo'?' ('+e.shape+')':''}`],['Position (center)',`x ${r2(e.x)}" from left · y ${r2(e.y)}" from top`],['Granite',`${g.name} (${g.laser} for laser)`]];
+        if(e.kind==='photo')rows.push(['Source file',e.asset?`${ASSETS[e.asset].name} · ${ASSETS[e.asset].pxW}×${ASSETS[e.asset].pxH}px · ${photoDPI(e)} dpi at size`:'PHOTO NOT YET RECEIVED']);
+        if(e.flip)rows.push(['Orientation','Mirrored']);
+        const yy=table(M+124,y,[['',100],['',PW-2*M-124-100]],rows,{fs:8});
+        y=Math.max(yy,y+150)+8;
+      }
+      doc.setFontSize(7.5);doc.setTextColor(...soft);doc.text('Full-resolution photos are sent with this order. True-size SVG layout available from ROC.',M,PH-40);
+      foot();
+    }
+  }
+  Object.assign(UI,saveUI);
+  const name=`${D.id}-${kind==='work'?'work-orders':'proof'}.pdf`;
+  if(silent)return{doc,name};
+  const blob=doc.output('blob');
+  showPdf(doc,name,blob);
+  return{doc,name};
+}
+function showPdf(doc,name,blob){
+  // Download where the browser allows it; always show the pages so it works everywhere.
+  download(name,blob);
+  const n=doc.getNumberOfPages();
+  const url=URL.createObjectURL(blob);
+  modal(`<div class="mh"><div><span class="eyebrow">${esc(name)}</span><h3 style="font-size:20px;margin-top:4px">${n} page${n>1?'s':''} ready</h3></div><div class="row" style="flex:0 0 auto"><a class="btn pri" href="${url}" download="${esc(name)}" target="_blank" rel="noopener">Download PDF</a><button class="btn" data-close="1">Close</button></div></div>
+    <div class="mb"><iframe src="${url}" title="PDF preview" style="width:100%;height:70vh;border:1px solid var(--line);background:#fff"></iframe><p class="small muted">If the preview is blank in this window, use Download PDF. On rocmemorials.com the file downloads directly.</p></div>`);
+}
+function download(name,blob){try{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}catch(e){}}
+
+async function sendToROC(){
+  const c=D.contact,miss=[];
+  if(!c.first||!c.last)miss.push('your name');if(!c.phone&&!c.email)miss.push('a phone or email');
+  if(!people().length)miss.push('at least one name on the stone');
+  if(miss.length){toast('Add '+miss.join(', ')+' before sending.');return}
+  if(!D.id)D.id=newId();
+  toast('Preparing your design…');
+  const r=await buildPDF('proof',true);const pdf=r?r.doc.output('datauristring'):null;
+  const png=await svgToPng(renderStone({side:'front',bg:'studio',dims:false}),1400);
+  const pl=payload(png&&png.src,pdf);
+  let sent=false;
+  if(CFG.GHL_WEBHOOK_URL){try{const res=await fetch(CFG.GHL_WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pl)});sent=res.ok}catch(e){}}
+  commit(true);
+  modal(`<div class="mh"><div><span class="eyebrow">Design ${esc(D.id)}</span><h3 style="font-size:22px;margin-top:4px">${sent?'Your design is with ROC.':'Your design is ready to send.'}</h3></div><button class="btn" data-close="1">Close</button></div>
+   <div class="mb">${sent?`<div class="note ok">ROC will review your design and call within one business day. Nothing is cut until you sign the final proof.</div>`:`<div class="note warn">This page isn’t connected to ROC’s inbox yet, so nothing was sent. Call ROC at <b style="user-select:all">${CFG.phone}</b> or email <b style="user-select:all">${CFG.email}</b> with your design number and the PDF.${CFG.GHL_WEBHOOK_URL?'':' (Staff: set GHL_WEBHOOK_URL in CFG.)'}</div>`}
+   <img src="${png?png.src:''}" alt="Your monument design">
+   <div class="row"><button class="btn" data-pdfnow="1">Download proof PDF</button><button class="btn" data-copybrief="1">Copy design summary</button></div>
+   ${UI.staff?`<details><summary class="small">Webhook payload (staff)</summary><pre>${esc(JSON.stringify({...pl,preview_png:'(base64 image)',proof_pdf:'(base64 pdf)'},null,2))}</pre></details>`:''}</div>`);
+}
+function mailProduction(){
+  const to=CFG.PRODUCTION.filter(p=>D.route[p.id]).map(p=>p.email);if(!to.length)return toast('Choose at least one production contact.');
+  if(!D.id)D.id=newId();
+  const body=brief().slice(0,1700)+'\n\nWork orders PDF attached.';
+  const href=`mailto:${to.join(',')}?subject=${encodeURIComponent(`ROC work order ${D.id} · ${D.contact.last||D.family}`)}&body=${encodeURIComponent(body)}`;
+  modal(`<div class="mh"><h3 style="font-size:20px">Email production</h3><button class="btn" data-close="1">Close</button></div><div class="mb">
+   <p class="small" style="margin:0">To: <b class="mono" style="user-select:all">${esc(to.join(', '))}</b></p>
+   <pre>${esc(body)}</pre>
+   <div class="row"><a class="btn pri" href="${esc(href)}" target="_top">Open in mail app</a><button class="btn" data-copybrief="1">Copy text</button><button class="btn" data-pdfwork="1">Build work orders PDF</button></div>
+   <p class="small muted" style="margin:0">Attach the work orders PDF and any portrait photos before sending. If the mail app doesn’t open, copy the text and addresses above.</p></div>`);
+}
+function copyText(s){const ok=()=>toast('Copied.');try{navigator.clipboard.writeText(s).then(ok).catch(()=>fallbackCopy(s))}catch(e){fallbackCopy(s)}}
+function fallbackCopy(s){modal(`<div class="mh"><h3 style="font-size:18px">Copy this text</h3><button class="btn" data-close="1">Close</button></div><div class="mb"><textarea style="min-height:300px" id="cpy">${esc(s)}</textarea></div>`);setTimeout(()=>$('#cpy')?.select(),30)}
+function modal(html){const r=$('#modalRoot');r.innerHTML=`<div class="scrim"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;r.querySelector('.scrim').addEventListener('click',ev=>{if(ev.target.classList.contains('scrim')||ev.target.closest('[data-close]'))r.innerHTML='';if(ev.target.closest('[data-copybrief]'))copyText(brief());if(ev.target.closest('[data-pdfnow]'))buildPDF('proof');if(ev.target.closest('[data-pdfwork]'))buildPDF('work')})}
+let toastT;function toast(m){let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';t.setAttribute('role','status');document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3200)}
+function saveFile(){if(!D.id)D.id=newId();const used={};D.els.forEach(e=>{if(e.asset&&ASSETS[e.asset])used[e.asset]=ASSETS[e.asset]});download(`${D.id}-design.json`,new Blob([JSON.stringify({app:'roc-monument-designer',D,ASSETS:used})],{type:'application/json'}));toast(`Saved design ${D.id}.`)}
+
+/* ============================================================ boot */
+function renderAll(){railRender();panelRender();toolsRender();inspRender();stageRender();specRender()}
+function boot(){
+  try{const s=JSON.parse(localStorage.getItem('roc-designer')||'null');if(s&&s.D&&s.D.v===2){D={...newDesign(),...s.D};Object.assign(ASSETS,s.ASSETS||{})}}catch(e){}
+  try{const sp=new URLSearchParams(location.search);if(sp.get('staff')==='1')UI.staff=true}catch(e){}
+  $('#siteLink').href=CFG.SITE_URL;
+  if(!D.els.length)applyPreset(PRESETS[0]);
+  commit(true);
+  bindStage();bindInspector();bindPanel();
+  $('#rail').addEventListener('click',ev=>{const b=ev.target.closest('[data-step]');if(b)goStep(+b.dataset.step)});
+  $('#prevBtn').onclick=()=>goStep(UI.step-1);
+  $('#nextBtn').onclick=()=>UI.step===STEPS.length-1?sendToROC():goStep(UI.step+1);
+  $('#tools').addEventListener('click',ev=>{const b=ev.target.closest('[data-tool]');if(!b)return;const k=b.dataset.tool;
+    if(k==='front'||k==='back'){UI.side=k;UI.sel=null}else if(k==='ruler'||k==='grid'||k==='dims')UI[k]=!UI[k];else if(k==='undo')return undo();else if(k==='redo')return redo();
+    else if(k.startsWith('bg:'))UI.bg=k.slice(3);else if(k==='zin')return setZoom(UI.zoom*1.25);else if(k==='zout')return setZoom(UI.zoom/1.25);else if(k==='fit')return setZoom(1);
+    toolsRender();inspRender();stageRender();if(STEPS[UI.step].id==='back'||STEPS[UI.step].id==='art')panelRender()});
+  $('#specbar').addEventListener('input',ev=>{const t=ev.target;if(!t.dataset.spec)return;const v=t.tagName==='SELECT'?t.value:parseFloat(t.value);if(t.tagName!=='SELECT'&&!(v>0))return;setPath(t.dataset.spec,v);afterChange(t.dataset.spec,false);if(UI.step===2)panelRender()});
+  $('#specbar').addEventListener('change',ev=>{specRender()});
+  $('#specbar').addEventListener('click',ev=>{const b=ev.target.closest('[data-specbtn]');if(!b)return;if(b.dataset.specbtn==='base')D.base.on=true;else D.sub.on=true;afterChange('base',true)});
+  $('#staffBtn').onclick=()=>{
+    if(!UI.staff&&CFG.STAFF_PIN){modal(`<div class="mh"><h3 style="font-size:18px">ROC staff view</h3><button class="btn" data-close="1">Close</button></div><div class="mb"><form id="pinf" class="row"><input type="password" id="pin" placeholder="Staff PIN" autocomplete="off"><button class="btn pri" type="submit" style="flex:0">Unlock</button></form></div>`);
+      $('#pinf').onsubmit=e=>{e.preventDefault();if($('#pin').value===CFG.STAFF_PIN){UI.staff=true;$('#modalRoot').innerHTML='';staffSync()}else toast('That PIN is not correct.')};return}
+    UI.staff=!UI.staff;staffSync()};
+  $('#saveBtn').onclick=saveFile;
+  $('#openBtn').onclick=()=>$('#fileOpen').click();
+  $('#fileOpen').onchange=ev=>{const f=ev.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const j=JSON.parse(rd.result);if(!j.D)throw 0;D={...newDesign(),...j.D};Object.assign(ASSETS,j.ASSETS||{});UI.sel=null;commit(true);renderAll();toast(`Opened ${D.id||'design'}.`)}catch(e){toast('That file is not a ROC design file.')}};rd.readAsText(f);ev.target.value=''};
+  $('#photoIn').onchange=ev=>{onPhoto(ev.target.files[0]);ev.target.value=''};
+  staffSync();
+  renderAll();
+  const ready=()=>{FONTS_READY=true;for(const k in CAPCACHE)delete CAPCACHE[k];if(D.autoLayout)autoArrange(true);renderAll()};
+  if(document.fonts&&document.fonts.ready){Promise.all(FONTS.map(f=>document.fonts.load(`40px ${f.css}`).catch(()=>{}))).then(()=>document.fonts.ready).then(ready)}else ready();
+}
+function staffSync(){$('#staffBtn').setAttribute('aria-pressed',UI.staff);panelRender()}
+boot();
+
+</script>

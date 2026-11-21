@@ -66,7 +66,11 @@ async function open(kind, cfg = {}, extra = {}) {
       : await browser.newContext({ viewport: { width: 1440, height: 900 }, ...extra })
   await ctx.addInitScript((c) => {
     window.SB_CONFIG = c
-    sessionStorage.setItem('sb-intro', 'seen')
+    try {
+      sessionStorage.setItem('sb-intro', 'seen')
+    } catch {
+      // sandboxed demo frames have no storage
+    }
   }, cfg)
   const page = await ctx.newPage()
   const errors = []
@@ -396,6 +400,204 @@ for (const kind of ['desktop', 'phone']) {
       document.body.classList.contains('menu-open') || document.body.classList.contains('locked'),
   )
   check('UX-18', 'phone menu opens, navigates and closes without locking the page', !stuck)
+  await ctx.close()
+}
+
+/* ---------- Work & Systems Showcase ---------- */
+for (const kind of ['desktop', 'phone']) {
+  const { ctx, page, errors } = await open(kind)
+  await page.evaluate(() => document.getElementById('work').scrollIntoView({ behavior: 'instant' }))
+  await page.waitForTimeout(2600)
+  const wall = await page.evaluate(() => {
+    const tiles = [...document.querySelectorAll('#brand-wall .bw-tile')]
+    return {
+      names: tiles.map((t) => t.querySelector('.bw-cap strong').textContent),
+      broken: [...document.querySelectorAll('#brand-wall img, #work img')]
+        .filter((i) => i.complete && i.naturalWidth === 0)
+        .map((i) => i.src),
+      lit: document.getElementById('brand-wall').classList.contains('lit'),
+    }
+  })
+  check(
+    'UX-21',
+    `${kind}: logo wall shows the published clients only, every logo loads`,
+    wall.lit &&
+      wall.names.includes('Divine Detailing') &&
+      wall.names.includes('Wreck & Refine') &&
+      wall.names.includes('Veterans Funeral Care') &&
+      wall.names.includes('Cayena Food Garden') &&
+      wall.names.includes('ROC Memorials & Monuments') &&
+      !wall.names.some((n) => /hunters/i.test(n)) &&
+      !wall.broken.length,
+    wall.names.join(', ') + (wall.broken.length ? ' · broken: ' + wall.broken.join(' ') : ''),
+  )
+
+  // tabs: keyboard
+  await page.focus('#tab-built')
+  await page.keyboard.press('ArrowRight')
+  const tab = await page.evaluate(() => ({
+    building: !document.getElementById('show-building').hidden,
+    built: !document.getElementById('show-built').hidden,
+    focus: document.activeElement.id,
+  }))
+  check(
+    'UX-22',
+    `${kind}: work tabs switch with the keyboard`,
+    tab.building && !tab.built && tab.focus === 'tab-building',
+  )
+
+  // film: open from the wall, chapters, results, focus and Escape
+  const opener = await page.$('#brand-wall [data-film="divine"]')
+  await opener.click()
+  await page.waitForTimeout(1500)
+  const f1 = await page.evaluate(() => ({
+    open: !document.getElementById('film').hidden,
+    ch: document.getElementById('film').dataset.ch,
+    focus: document.activeElement.id,
+    locked: getComputedStyle(document.documentElement).overflow === 'hidden',
+  }))
+  await page.screenshot({ path: `${OUT}/${kind}-film-logo.png` })
+  await page.click('#film-chapters [data-ch="1"]')
+  await page.waitForTimeout(2800)
+  const web = await page.evaluate(() => ({
+    ch: document.getElementById('film').dataset.ch,
+    img: !!document.querySelector('.fw-screen img.on')?.naturalWidth,
+  }))
+  await page.screenshot({ path: `${OUT}/${kind}-film-web.png` })
+  await page.click('#film-chapters [data-ch="3"]')
+  await page.waitForTimeout(2200)
+  const sys = await page.evaluate(() => ({
+    ch: document.getElementById('film').dataset.ch,
+    kpis: [...document.querySelectorAll('.fs-system .res-kpis strong')].map((s) => s.textContent),
+    src: document.querySelector('.fs-system .res-src')?.textContent || '',
+    paused: document.getElementById('film-pause').dataset.state,
+  }))
+  await page.screenshot({ path: `${OUT}/${kind}-film-system.png` })
+  // focus stays inside the film
+  for (let i = 0; i < 14; i++) await page.keyboard.press('Tab')
+  const inside = await page.evaluate(() => !!document.activeElement.closest('#film'))
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(400)
+  const f2 = await page.evaluate(() => ({
+    hidden: document.getElementById('film').hidden,
+    back: document.activeElement.dataset?.film,
+    locked: document.documentElement.classList.contains('film-open'),
+  }))
+  check(
+    'UX-23',
+    `${kind}: project film opens, plays its chapters, traps focus, Escape closes and returns focus`,
+    f1.open &&
+      f1.ch === '0' &&
+      f1.focus === 'film-close' &&
+      f1.locked &&
+      web.ch === '1' &&
+      web.img &&
+      sys.ch === '3' &&
+      inside &&
+      f2.hidden &&
+      f2.back === 'divine' &&
+      !f2.locked,
+    JSON.stringify({ f1, web, f2 }),
+  )
+  check(
+    'UX-24',
+    `${kind}: Divine results match the ad account exactly, with source and period`,
+    sys.kpis.join('|') === '29.1K|685|26|$35.80|$1.36' && /Ad Manager/.test(sys.src),
+    sys.kpis.join(' · '),
+  )
+
+  // "see how the system works" hands off to the walkthrough with the matching scenario
+  await page.click('#brand-wall [data-film="wreck"]')
+  await page.waitForTimeout(600)
+  await page.click('#film-chapters [data-ch="3"]')
+  await page.waitForTimeout(900)
+  await page.click('[data-film-how]')
+  await page.waitForTimeout(1600)
+  const how = await page.evaluate(() => ({
+    hidden: document.getElementById('film').hidden,
+    scenario: JSON.parse(sessionStorage.getItem('sb-scope-v2') || '{}').scenarioId,
+  }))
+  check(
+    'UX-25',
+    `${kind}: film hands off to the matching walkthrough`,
+    how.hidden && how.scenario === 'ops',
+    JSON.stringify(how),
+  )
+  const ow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
+  check(
+    'UX-19',
+    `${kind}: no page errors or overflow after the showcase`,
+    !errors.length && ow <= 0,
+    errors.join(' | '),
+  )
+  await ctx.close()
+}
+for (const kind of ['desktop', 'phone']) {
+  // live demo: the real ROC designer runs sandboxed, closes cleanly
+  const { ctx, page, errors } = await open(kind)
+  await page.evaluate(() =>
+    document.getElementById('demo-grid').scrollIntoView({ behavior: 'instant', block: 'center' }),
+  )
+  await page.waitForTimeout(500)
+  const launch = await page.$('#demo-grid .btn[data-demo="roc"]')
+  await launch.click()
+  await page.waitForTimeout(3500)
+  const d = await page.evaluate(() => {
+    const f = document.getElementById('demo-iframe')
+    return {
+      open: !document.getElementById('demo').hidden,
+      ready: document.getElementById('demo').classList.contains('ready'),
+      sandbox: f.getAttribute('sandbox'),
+      focus: document.activeElement.id,
+    }
+  })
+  const text = await page
+    .frameLocator('#demo-iframe')
+    .locator('body')
+    .innerText()
+    .catch(() => '')
+  await page.screenshot({ path: `${OUT}/${kind}-demo.png` })
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(300)
+  const after = await page.evaluate(() => ({
+    hidden: document.getElementById('demo').hidden,
+    back: document.activeElement.dataset?.demo,
+    unlocked: !document.documentElement.classList.contains('film-open'),
+  }))
+  check(
+    'UX-26',
+    `${kind}: live demo runs the ROC designer sandboxed (no same-origin), Escape closes and returns focus`,
+    d.open &&
+      d.ready &&
+      !/allow-same-origin/.test(d.sandbox) &&
+      d.focus === 'demo-close' &&
+      /Monument Designer/.test(text) &&
+      after.hidden &&
+      after.back === 'roc' &&
+      after.unlocked &&
+      !errors.length,
+    JSON.stringify({ d, after, errors: errors.slice(0, 2) }),
+  )
+  await ctx.close()
+}
+{
+  // reduced motion: the film still works, as cuts
+  const { ctx, page, errors } = await open('phone', {}, { reducedMotion: 'reduce' })
+  await page.evaluate(() => document.getElementById('work').scrollIntoView({ behavior: 'instant' }))
+  await page.waitForTimeout(400)
+  await page.click('#brand-wall [data-film="veterans"]')
+  await page.waitForTimeout(4200)
+  const r = await page.evaluate(() => ({
+    reduced: document.getElementById('film').classList.contains('reduced'),
+    ch: +document.getElementById('film').dataset.ch,
+    lit: document.getElementById('brand-wall').classList.contains('lit'),
+  }))
+  check(
+    'UX-08',
+    'reduced motion: logo wall shows at once, film advances with cuts',
+    r.reduced && r.ch >= 1 && r.lit && !errors.length,
+    JSON.stringify(r),
+  )
   await ctx.close()
 }
 
