@@ -6,11 +6,11 @@
     <title>System-Based &middot; Systems over luck.</title>
     <meta
       name="description"
-      content="System-Based builds the systems that run service businesses: client response, growth, brand and build, and AI and operations. Packages, custom scopes and one-time projects."
+      content="System-Based builds the systems behind how a business attracts customers, responds to them, books work and operates. Client response, growth, brand and build, AI and operations."
     />
     <meta name="theme-color" content="#0a0a0b" />
-    <script type="module" crossorigin src="../assets/site-rnz_7zHG.js"></script>
-    <link rel="stylesheet" crossorigin href="../assets/site-QQYs7g7S.css">
+    <script type="module" crossorigin src="../assets/site-348-pmd3.js"></script>
+    <link rel="stylesheet" crossorigin href="../assets/site-CgAqttko.css">
   </head>
   <body class="intro">
     <a class="sr-only" href="#main">Skip to content</a>
@@ -24,11 +24,11 @@
           <a href="#work">Work</a>
           <a href="#packages">Packages</a>
           <a href="#projects">Projects</a>
-          <a href="#community">Pressure Built</a>
+          <a href="#community">Community</a>
         </nav>
         <div class="nav-cta">
-          <button class="btn sm primary" data-book>Book a call</button>
-          <button class="burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
+          <button type="button" class="btn sm primary" data-book data-from="nav">Book a call</button>
+          <button type="button" class="burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu">
             <i></i><i></i>
           </button>
         </div>
@@ -40,32 +40,28 @@
       <a href="#work">Work</a>
       <a href="#packages">Packages</a>
       <a href="#projects">Projects</a>
-      <a href="#community">Pressure Built</a>
-      <button class="btn primary" data-book>Book a call</button>
+      <a href="#community">Community</a>
+      <button type="button" class="btn primary" data-book data-from="menu">Book a call</button>
     </div>
 
     <main id="main">
-      <!-- 1. Enter the system -->
+      <!-- 1. Hero -->
       <section class="hero" id="top">
         <canvas id="hero-canvas" aria-hidden="true"></canvas>
         <div class="intro-card" id="intro-card" aria-hidden="true">
           <span class="word chrome">System-Based</span>
           <span class="tag">Systems over luck.</span>
         </div>
-        <button class="intro-skip" id="intro-skip">Skip intro</button>
+        <button type="button" class="intro-skip" id="intro-skip">Skip intro</button>
         <div class="wrap">
-          <div class="eyebrow" data-intro="1">
-            <span class="dot"></span>Business systems &middot; development &middot; operations
-          </div>
+          <div class="eyebrow" data-intro="1"><span class="dot"></span>Business systems for service companies</div>
           <h1 class="display chrome" data-intro="2">Systems<br />over luck.</h1>
           <p class="lede" data-intro="3">
-            One company. Four systems. Multiple ways to build. One connected operating platform.
+            We connect how your business gets customers, responds to them and gets work done.
           </p>
           <div class="hero-ctas" data-intro="4">
-            <a class="btn primary" href="#start"
-              >Find your system <span aria-hidden="true">&rarr;</span></a
-            >
-            <button class="btn" data-book>Book a call</button>
+            <a class="btn primary" href="#start" data-hero-primary>Find what’s slowing you down <span aria-hidden="true">&darr;</span></a>
+            <button type="button" class="btn" data-book data-from="hero">Book a call</button>
           </div>
         </div>
         <div class="hero-rail">
@@ -76,7 +72,7 @@
         </div>
       </section>
 
-      <!-- 2. Understand the company -->
+      <!-- 2. What we do -->
       <section class="sec" id="company">
         <div class="wrap statement">
           <div class="eyebrow" data-reveal>What we do</div>
@@ -89,35 +85,45 @@
         </div>
       </section>
 
-      <!-- 3. Identify the problem -->
-      <section class="sec" id="start">
+      <!-- 3. Your bottleneck -->
+      <section class="sec diag-sec" id="start">
         <div class="wrap">
           <div class="sec-head" data-reveal>
             <div class="eyebrow">Start with the problem</div>
-            <h2 class="display h2">What&rsquo;s slowing you down?</h2>
-            <p class="lede">Pick the one that sounds most like your business. No jargon needed.</p>
+            <h2 class="display h2">What&rsquo;s slowing your business down?</h2>
+            <p class="lede">Pick the biggest bottleneck. We&rsquo;ll show you what solving it looks like.</p>
           </div>
-          <div class="need" data-reveal="2">
-            <div
-              class="need-list"
-              id="need-list"
-              role="group"
-              aria-label="Choose your biggest problem"
-            ></div>
-            <div class="need-out" id="need-out" aria-live="polite"></div>
-          </div>
+          <div class="need-grid" id="need-list" role="group" aria-label="Choose your biggest bottleneck" data-reveal="2"></div>
+          <div class="need-out" id="need-out" aria-live="polite"></div>
         </div>
       </section>
 
-      <!-- 4. Explore the four systems -->
+      <!-- 4. Watch the system go to work (one connected walkthrough) -->
+      <section class="story-sec" id="how" aria-labelledby="story-title">
+        <div class="wrap story-head">
+          <div class="eyebrow">See what happens behind the scenes</div>
+          <h2 class="display h2" id="story-title">From the first inquiry<br />to the next action.</h2>
+          <p class="lede">
+            Watch how a customer moves through a connected system. Every reply, booking and handoff
+            has a place. Scroll to see what happens next.
+          </p>
+          <div class="story-switch" id="story-switch" role="group" aria-label="Choose an example"></div>
+        </div>
+        <div class="wrap story" id="story">
+          <div class="story-stage" id="story-stage"></div>
+          <ol class="story-chapters" id="story-chapters"></ol>
+        </div>
+      </section>
+
+      <!-- 5. The four systems -->
       <section class="sec" id="systems">
         <div class="wrap">
           <div class="sec-head" data-reveal>
-            <div class="eyebrow">The system architecture</div>
-            <h2 class="display h2">Four systems.<br />Twenty services.</h2>
+            <div class="eyebrow">The four systems</div>
+            <h2 class="display h2">Four systems.<br />Built around your business.</h2>
             <p class="lede">
-              The systems are what we do. Every service sits in exactly one of them. Packages and
-              projects are built from these same services.
+              You don&rsquo;t need everything. Start where the work is slipping, and connect more as
+              your operation grows.
             </p>
           </div>
           <div class="explorer" id="explorer" data-reveal="2">
@@ -127,64 +133,16 @@
         </div>
       </section>
 
-      <!-- 5. See the infrastructure work -->
-      <section id="how" aria-label="How the systems connect">
-        <div class="fit" id="fit">
-          <div class="fit-stage">
-            <canvas id="fit-canvas" aria-hidden="true"></canvas>
-            <div class="fit-top">
-              <div class="wrap">
-                <div class="eyebrow">See the infrastructure work</div>
-                <div class="fit-progress" id="fit-progress" style="margin-top: 16px"></div>
-              </div>
-            </div>
-            <div class="fit-copy">
-              <div class="wrap">
-                <div class="fit-chapters" id="fit-chapters"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="sec" id="journey">
-        <div class="wrap journey">
-          <div data-reveal>
-            <div class="eyebrow">Live walkthrough</div>
-            <h2 class="display h2" style="margin-top: 18px">Watch a lead<br />get booked.</h2>
-            <p class="lede" style="margin-top: 18px">
-              A missed call becomes a booked job, with every system doing its part. Step through it,
-              and watch the CRM and the owner dashboard update.
-            </p>
-            <div class="steps" id="steps" role="tablist" aria-label="Lead journey steps"></div>
-          </div>
-          <div class="demo" data-reveal="2">
-            <div class="phone" aria-hidden="true">
-              <div class="screen">
-                <div class="screen-top">
-                  <span>Northside Roofing</span><span id="demo-time"></span>
-                </div>
-                <div class="thread" id="thread"></div>
-              </div>
-            </div>
-            <div class="demo-side">
-              <div class="crm" id="crm" aria-live="polite"></div>
-              <div class="dash" id="dash" aria-live="polite"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 6. Explore actual work -->
+      <!-- 6. Work -->
       <section class="sec" id="work">
         <div class="wrap">
           <div class="work-head" data-reveal>
             <div class="sec-head" style="margin: 0">
-              <div class="eyebrow">Work, case studies &amp; live demos</div>
+              <div class="eyebrow">Our work</div>
               <h2 class="display h2">See it running.</h2>
               <p class="lede">
-                Live sites, working demos and everything we&rsquo;ve built. Open a project for the
-                problem, the build and the result.
+                Live projects and working demos, each with the problem, what was built and what
+                changed.
               </p>
             </div>
             <div class="filters" id="filters" role="group" aria-label="Filter work"></div>
@@ -193,20 +151,20 @@
         </div>
       </section>
 
-      <!-- 7. Configure the solution -->
+      <!-- 7. Your options -->
       <section class="sec" id="packages">
         <div class="wrap">
           <div class="sec-head center" data-reveal>
-            <div class="eyebrow">Configure the solution</div>
+            <div class="eyebrow">Your options</div>
             <h2 class="display h2">Pick a package,<br />or build your own.</h2>
             <p class="lede">
-              Packages are ready-made bundles of services. If none fits, tick the services you need
-              and we&rsquo;ll scope a custom proposal from the same catalog.
+              Packages are ready-made bundles of services. If none fits, choose the services you
+              need and we&rsquo;ll scope a custom proposal from the same catalog.
             </p>
             <div class="toggle" id="config-toggle" role="group" aria-label="Configure">
               <span class="thumb"></span>
-              <button aria-pressed="true" data-view="packages">Packages</button>
-              <button aria-pressed="false" data-view="composer">Build your own</button>
+              <button type="button" aria-pressed="true" data-view="packages">Packages</button>
+              <button type="button" aria-pressed="false" data-view="composer">Build your own</button>
             </div>
             <p class="draft-note" id="draft-note" hidden></p>
           </div>
@@ -214,16 +172,14 @@
           <div id="view-packages">
             <div class="plans" id="plans" data-reveal="2"></div>
             <div class="pkg-actions">
-              <button class="btn" id="compare-btn" aria-expanded="false">
-                Compare every service
-              </button>
-              <button class="btn" data-performance>How performance pricing works</button>
+              <button type="button" class="btn" id="compare-btn" aria-expanded="false" aria-controls="matrix">See every service compared</button>
+              <button type="button" class="btn" data-performance>How performance pricing works</button>
             </div>
             <div class="matrix-wrap" id="matrix" hidden></div>
             <p class="fine">
               Every package has two parts: <strong>implementation</strong>, a one-time fee to build
               it, and <strong>management</strong>, a monthly fee to run and improve it. Ad spend is
-              always paid from your own ad account.
+              separate and paid from your own ad account.
             </p>
           </div>
 
@@ -236,6 +192,7 @@
         </div>
       </section>
 
+      <!-- 8. One-time projects -->
       <section class="sec" id="projects">
         <div class="wrap">
           <div class="builds">
@@ -243,52 +200,45 @@
               <div class="eyebrow">One-time projects</div>
               <h2 class="display h2">Built once.<br />Quoted per project.</h2>
               <p class="lede">
-                Websites, brands, agents and software, scoped and quoted after a fit call. Every
-                build is wired into Client Response, so it can keep booking leads on Capture from
-                day one.
+                Websites, brands, 3D and motion, agents, integrations and custom software. Scoped and
+                quoted after a short call, then handed over. If you want it to keep working for you,
+                it can connect to Client Response as a separate monthly service.
               </p>
             </div>
             <div class="build-grid" id="builds" data-reveal="2"></div>
           </div>
           <ol class="process" id="process" data-reveal></ol>
-          <div class="sec-head center" style="margin: clamp(70px, 9vw, 110px) 0 40px" data-reveal>
+          <div class="sec-head center" style="margin: clamp(56px, 8vw, 96px) 0 36px" data-reveal>
             <div class="eyebrow">Upgrade path</div>
-            <h3 class="display" style="font-size: clamp(26px, 3.4vw, 44px)">
-              Grow one level at a time.
-            </h3>
+            <h3 class="display" style="font-size: clamp(26px, 3.4vw, 44px)">Grow one level at a time.</h3>
           </div>
           <div class="path" id="path-track"></div>
         </div>
       </section>
 
-      <!-- Pressure Built: separate destination -->
+      <!-- 9. System-Based Business Community -->
       <section class="sec" id="community">
-        <div class="wrap">
-          <div class="community" data-reveal id="community-panel">
-            <div class="copy">
-              <div class="eyebrow">A separate path for builders</div>
-              <h2 class="display h2">Pressure Built.</h2>
-              <p class="lede">
-                The community and product line for owners, creators and operators who want to build
-                their own systems. It&rsquo;s separate from our done-for-you work, and it has a home
-                of its own.
-              </p>
-              <ul class="perks">
-                <li>Free community and starter playbooks</li>
-                <li>Membership: templates, build-alongs and weekly accountability</li>
-                <li>Ready-made systems: CRM snapshots, sequences, agent templates</li>
-              </ul>
-              <div class="tiers" aria-label="Community path">
-                <span>Free</span><i>&rarr;</i><span>Members</span><i>&rarr;</i><span>Products</span
-                ><i>&rarr;</i><span>Done-for-you</span>
-              </div>
-              <div class="hero-ctas" id="community-cta"></div>
-            </div>
-            <div class="art"><img id="community-img" alt="" loading="lazy" /></div>
+        <div class="wrap community2">
+          <div class="c-copy" data-reveal>
+            <div class="eyebrow">System-Based Business Community</div>
+            <h2 class="display h2">See what we&rsquo;re building.</h2>
+            <p class="lede">
+              Follow the work behind System-Based, learn what works and connect with owners and
+              operators improving how their businesses run.
+            </p>
+            <div class="c-example" id="community-example"></div>
+            <div class="hero-ctas" id="community-cta"></div>
+            <p class="muted c-status" id="community-status"></p>
           </div>
+          <div class="c-gateway" id="community-gateway" aria-hidden="true"></div>
+        </div>
+        <div class="wrap">
+          <div class="c-areas" id="community-areas" data-reveal></div>
+          <ol class="c-path" id="community-path" aria-label="Community path" data-reveal></ol>
         </div>
       </section>
 
+      <!-- 10. FAQ -->
       <section class="sec" id="faq">
         <div class="wrap faq">
           <div class="sec-head" data-reveal>
@@ -299,54 +249,48 @@
         </div>
       </section>
 
-      <!-- 8. Start implementation -->
+      <!-- 11. Inquiry -->
       <section class="sec inquiry" id="inquiry">
         <div class="wrap inq">
           <div class="inq-side" data-reveal>
-            <div class="eyebrow"><span class="dot"></span>Start implementation</div>
-            <h2 class="display h2 chrome">Systems<br />over luck.</h2>
+            <div class="eyebrow"><span class="dot"></span>Start here</div>
+            <h2 class="display h2">Let&rsquo;s build your<br />starting point.</h2>
             <p class="lede">
-              Tell us about the business. Your selections come with it, so the fit call starts from
-              your actual scope.
+              Tell us where your business is losing time or opportunities. We&rsquo;ll recommend what
+              makes sense before building anything.
             </p>
             <div class="inq-scope" id="inq-scope"></div>
-            <ul class="perks">
-              <li>We review your scope within one business day</li>
-              <li>A short fit call: lead flow, gaps, starting point</li>
-              <li>A written recommendation with the investment</li>
-            </ul>
           </div>
-          <form class="book" id="inquiry-form" novalidate data-reveal="2">
-            <label>Name<input id="f-name" name="name" autocomplete="name" required /></label>
-            <label>Business<input id="f-biz" name="business" autocomplete="organization" /></label>
-            <label>Phone<input id="f-phone" name="phone" type="tel" autocomplete="tel" /></label>
-            <label
-              >Email<input id="f-email" name="email" type="email" autocomplete="email"
-            /></label>
-            <label class="full"
-              >Starting point<select id="f-interest" name="interest"></select
-            ></label>
-            <label class="full"
-              >What&rsquo;s slipping right now?<textarea
-                id="f-msg"
-                name="message"
-                placeholder="e.g. we miss calls after 5pm and nobody follows up"
-              ></textarea>
-            </label>
-            <label class="full check"
-              ><input type="checkbox" id="f-perf" name="performance" /> I&rsquo;m interested in
-              performance pricing</label
-            >
-            <div
-              class="full"
-              style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap"
-            >
-              <button class="btn primary" type="submit">
-                Send my scope <span aria-hidden="true">&rarr;</span>
-              </button>
-              <span class="form-msg" id="form-msg" role="status"></span>
-            </div>
-          </form>
+          <div class="inq-main" data-reveal="2">
+            <form class="book" id="inquiry-form" novalidate>
+              <label for="f-name">Your name</label>
+              <input id="f-name" name="name" autocomplete="name" required />
+              <label for="f-biz">Business name <em>(optional)</em></label>
+              <input id="f-biz" name="business" autocomplete="organization" />
+              <label for="f-email">Email</label>
+              <input id="f-email" name="email" type="email" autocomplete="email" required />
+              <label for="f-phone">Phone <em>(optional, if you’d rather we call or text)</em></label>
+              <input id="f-phone" name="phone" type="tel" autocomplete="tel" />
+              <label class="full" for="f-problem">What&rsquo;s the biggest thing you want fixed?</label>
+              <select class="full" id="f-problem" name="problem"></select>
+              <label class="full" for="f-msg">Anything else we should know? <em>(optional)</em></label>
+              <textarea class="full" id="f-msg" name="message" placeholder="e.g. we miss calls after 5pm and nobody follows up"></textarea>
+              <label class="full" for="f-next">Preferred next step</label>
+              <select class="full" id="f-next" name="next_step">
+                <option>A short fit call</option>
+                <option>A written recommendation first</option>
+              </select>
+              <label class="full check"><input type="checkbox" id="f-perf" name="performance" /> I&rsquo;m interested in performance-based pricing</label>
+              <label class="full check"><input type="checkbox" id="f-consent" name="consent" /> Send me occasional updates by email or text. <em>(optional, unsubscribe any time)</em></label>
+              <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+              <div class="full submit-row">
+                <button class="btn primary" type="submit">Send my scope <span aria-hidden="true">&rarr;</span></button>
+                <span class="form-msg" id="form-msg" role="status"></span>
+              </div>
+              <p class="full fine-l">We reply personally with a recommendation and a next step. Your details are only used to respond to this request.</p>
+            </form>
+            <div class="inquiry-done" id="inquiry-done" tabindex="-1" hidden></div>
+          </div>
         </div>
       </section>
     </main>
@@ -356,27 +300,34 @@
         <a class="lockup" href="#top" aria-label="System-Based home" data-logo="tagline"></a>
         <nav aria-label="Footer">
           <a href="#systems">Systems</a>
+          <a href="#how">How it works</a>
           <a href="#work">Work</a>
           <a href="#packages">Packages</a>
           <a href="#projects">Projects</a>
-          <a href="#community">Pressure Built</a>
+          <a href="#community">Community</a>
           <a href="#faq">FAQ</a>
         </nav>
         <small>&copy; <span id="year"></span> System-Based. Systems over luck.</small>
       </div>
     </footer>
 
-    <div
-      class="sheet"
-      id="sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-hidden="true"
-      aria-labelledby="sheet-title"
-    >
+    <!-- your scope, always one tap away once it has something in it -->
+    <button type="button" class="scope-bar" id="scope-bar" hidden></button>
+
+    <!-- community invitation -->
+    <div class="gateway-fx" id="gateway-fx" hidden aria-hidden="true"></div>
+    <div class="invite" id="invite" role="dialog" aria-modal="true" aria-labelledby="invite-title" hidden>
+      <div class="invite-backdrop"></div>
+      <div class="invite-panel">
+        <button type="button" class="invite-x" data-invite-x aria-label="Close">&#10005;</button>
+        <div class="invite-body"></div>
+      </div>
+    </div>
+
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sheet-title">
       <div class="sheet-backdrop" data-close></div>
       <div class="sheet-panel">
-        <button class="sheet-close" data-close aria-label="Close">&#10005;</button>
+        <button type="button" class="sheet-close" data-close aria-label="Close">&#10005;</button>
         <div class="sheet-body" id="sheet-body"></div>
       </div>
     </div>

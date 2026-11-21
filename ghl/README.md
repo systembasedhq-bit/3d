@@ -2,10 +2,10 @@
 
 There are two ways to deploy:
 
-| Path | What goes into GHL | Use it when |
-| --- | --- | --- |
-| **A. Drop-in (current)** | One Custom JS/HTML element containing `ghl/drop/custom-code.html`. Assets load from jsDelivr, pinned to one commit of this public repo | The site lives on a GHL page (systembased.net) |
-| B. Static host + embed | `npm run build:ghl -- --url …` writes an iframe embed for a site hosted elsewhere | You host the files yourself (Netlify, Cloudflare Pages) |
+| Path                     | What goes into GHL                                                                                                                     | Use it when                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **A. Drop-in (current)** | One Custom JS/HTML element containing `ghl/drop/custom-code.html`. Assets load from jsDelivr, pinned to one commit of this public repo | The site lives on a GHL page (systembased.net)          |
+| B. Static host + embed   | `npm run build:ghl -- --url …` writes an iframe embed for a site hosted elsewhere                                                      | You host the files yourself (Netlify, Cloudflare Pages) |
 
 The rest of this guide covers path A.
 
@@ -38,14 +38,14 @@ The block moves the site to the top of `<body>` once, even if GHL runs the code 
 
 ## 3. Settings (`window.SB_CONFIG`)
 
-| Key | Set it to | When blank |
-| --- | --- | --- |
-| `FORM_ENDPOINT` | The relay URL (step 4), or a GHL Inbound Webhook URL | The form says sending isn’t switched on, and keeps what was typed |
-| `FORM_MODE` | `'relay'`, `'ghl'` or `'auto'` | `'auto'` detects GHL webhook URLs |
-| `BOOKING_URL` | GHL calendar permanent link | No calendar after an inquiry |
-| `COMMUNITY_URL` | The working join link for the System-Based Business Community | Visitors get an honest waitlist instead of a join button |
-| `CONTACT_EMAIL` | An inbox you read | Not shown |
-| `SHOW_PROPOSED` | Keep `false` until prices are approved in `src/catalog/catalog.js` | Unapproved prices read “Confirmed after scoping” |
+| Key             | Set it to                                                          | When blank                                                        |
+| --------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `FORM_ENDPOINT` | The relay URL (step 4), or a GHL Inbound Webhook URL               | The form says sending isn’t switched on, and keeps what was typed |
+| `FORM_MODE`     | `'relay'`, `'ghl'` or `'auto'`                                     | `'auto'` detects GHL webhook URLs                                 |
+| `BOOKING_URL`   | GHL calendar permanent link                                        | No calendar after an inquiry                                      |
+| `COMMUNITY_URL` | The working join link for the System-Based Business Community      | Visitors get an honest waitlist instead of a join button          |
+| `CONTACT_EMAIL` | An inbox you read                                                  | Not shown                                                         |
+| `SHOW_PROPOSED` | Keep `false` until prices are approved in `src/catalog/catalog.js` | Unapproved prices read “Confirmed after scoping”                  |
 
 Only fill a value once it is real and tested. Never invent a link.
 
@@ -82,10 +82,10 @@ Use two workflows, so community sign-ups never get sales follow-up.
    - `sb_source_page`, `sb_request_id`
    - `utm_source`, `utm_medium`, `utm_campaign`
 3. **Tags.** `tags` holds values such as `sb-inquiry,sb-pkg-capture,sb-problem-response`. If your tag action can't take a mapped value, branch on `sb_problem_id` and `sb_accepted_package` instead.
-4. **Opportunity.** Use **Create/Update Opportunity** (not Create) in pipeline *System-Based Sales*, stage *New inquiry*. This keeps repeat submissions from making duplicate opportunities.
+4. **Opportunity.** Use **Create/Update Opportunity** (not Create) in pipeline _System-Based Sales_, stage _New inquiry_. This keeps repeat submissions from making duplicate opportunities.
 5. **Internal notification** to the owner. Include the name, business, `sb_need`, the accepted or recommended package, `sb_services`, `sb_next_step`, `sb_message` and the UTM source.
 6. **Lead confirmation.** Send email by default. Send SMS **only** where you have consent, which `sb_marketing_consent` alone does not cover for promotional texts. Check the rules that apply to you.
-7. A second workflow on **Appointment booked** (the fit-call calendar) moves the opportunity to *Fit call booked*.
+7. A second workflow on **Appointment booked** (the fit-call calendar) moves the opportunity to _Fit call booked_.
 
 ### b) Community waitlist
 
