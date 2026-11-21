@@ -61,6 +61,14 @@ import rocM0 from './media/clients/roc-m0.webp'
 import rocM1 from './media/clients/roc-m1.webp'
 import rocDesigner from './media/demos/roc-monument-designer.html?url'
 
+import guestnestLogo from './media/clients/guestnest-logo.webp'
+import guestnestD0 from './media/clients/guestnest-d0.webp'
+import guestnestD1 from './media/clients/guestnest-d1.webp'
+import guestnestD2 from './media/clients/guestnest-d2.webp'
+import guestnestD3 from './media/clients/guestnest-d3.webp'
+import guestnestM0 from './media/clients/guestnest-m0.webp'
+import guestnestM1 from './media/clients/guestnest-m1.webp'
+
 export const CLIENTS = [
   {
     id: 'divine',
@@ -203,10 +211,10 @@ export const CLIENTS = [
     theme: { bg: '#f5f2ee', ink: '#231f20', accent: '#2f5d46', light: true },
     logo: { src: rocLogo, wide: true },
     views: [
-      { img: rocD0, cap: 'Made to remember someone: the first screen' },
-      { img: rocD1, cap: 'Every kind of memorial, explained' },
-      { img: rocD2, cap: 'Cemetery check before you fall in love with a stone' },
-      { img: rocD3, cap: 'Smaller ways to remember someone' },
+      { img: rocD0, cap: 'Made to remember someone, at the Hilton showroom' },
+      { img: rocD1, cap: 'Every kind of memorial, with real ROC work' },
+      { img: rocD2, cap: 'The details are what make it theirs' },
+      { img: rocD3, cap: 'Cemetery check before anyone falls in love with a stone' },
     ],
     app: {
       label: 'Designer',
@@ -227,6 +235,39 @@ export const CLIENTS = [
       src: rocDesigner,
       note: 'A working copy. Nothing you enter is sent to ROC or saved.',
     },
+    links: [],
+    scenario: 'brand',
+  },
+  {
+    id: 'guestnest',
+    published: true,
+    stage: 'built',
+    status: 'Live',
+    name: 'My Guest Nest',
+    place: "Florida's Treasure Coast",
+    industry: 'Concierge · Co-host · Home watch',
+    summary:
+      'A new brand and website for a local concierge, co-hosting and home-watch company, with a path for owners and one for guests.',
+    built: [
+      'Brand and logo',
+      'Website with separate paths for property owners and vacation guests',
+      'Co-hosting, home watch and concierge, each with a clear next step',
+      'Concierge setups guests can choose before they arrive',
+      'Service-area check before an owner signs up',
+    ],
+    systems: ['BB', 'CR'],
+    theme: { bg: '#ffffff', ink: '#12304d', accent: '#c9a35a', light: true },
+    logo: { src: guestnestLogo },
+    views: [
+      { img: guestnestD0, cap: 'A trusted local hand, with a home-watch report up front' },
+      { img: guestnestD1, cap: 'Owners and guests each get their own path' },
+      { img: guestnestD2, cap: 'Co-hosting, home watch and concierge, explained simply' },
+      { img: guestnestD3, cap: 'Concierge setups guests can pick before they arrive' },
+    ],
+    phone: [
+      { img: guestnestM0, cap: 'Built for owners checking in from anywhere' },
+      { img: guestnestM1, cap: 'Photos and updates with every visit' },
+    ],
     links: [],
     scenario: 'brand',
   },
@@ -261,21 +302,6 @@ export const CLIENTS = [
     ],
     links: [{ label: 'Visit the live site', url: 'https://www.cayenafoodgarden.com/home' }],
     scenario: 'brand',
-  },
-  {
-    id: 'guestnest',
-    published: true,
-    stage: 'building',
-    status: 'Coming soon',
-    name: 'My Guest Nest',
-    place: '',
-    industry: 'Concierge · Co-host · Home watch',
-    summary: 'A new brand and website for a concierge, co-hosting and home-watch company.',
-    built: ['Brand', 'Website'],
-    systems: ['BB'],
-    theme: { bg: '#0b1626', ink: '#f4f1ea', accent: '#6fb3a8', light: false },
-    wordmark: { top: 'My Guest Nest', sub: 'Where every stay feels like home.' },
-    links: [],
   },
   {
     id: 'faith',
