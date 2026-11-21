@@ -571,7 +571,7 @@ for (const kind of ['desktop', 'phone']) {
       d.ready &&
       !/allow-same-origin/.test(d.sandbox) &&
       d.focus === 'demo-close' &&
-      /Monument Designer/.test(text) &&
+      /Granite & shape/.test(text) &&
       after.hidden &&
       after.back === 'roc' &&
       after.unlocked &&
