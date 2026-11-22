@@ -21,7 +21,7 @@ var FF_CATALOG = (function () {
     { id: 'd04', no: '04', name: 'Summer weight', date: '2027-07-01T00:00:00-04:00',
       blurb: 'A heavyweight tee in Foundation and Emblem, for the warm months.', products: [] },
     { id: 'd05', no: '05', name: 'The Nameplate', date: '2027-09-01T00:00:00-04:00',
-      blurb: 'The cross-and-nameplate piece for desks and walls, and the second vote winner.', products: [], vote: true },
+      blurb: 'The cross-and-nameplate piece for desks and walls, and the second vote winner.', products: [], vote: true, img: 'nameplate-desk' },
     { id: 'd06', no: '06', name: 'Gather', date: '2027-11-01T00:00:00-04:00',
       blurb: 'Gift sets for the holidays: cap and tag, hoodie and cap, wall piece in a gift box.', products: [] },
     { id: 'd07', no: '07', name: 'Year two', date: '2028-01-01T00:00:00-05:00', label: 'J1',
@@ -30,8 +30,13 @@ var FF_CATALOG = (function () {
 
   /* ---- What people can vote for on the Drops page. Add or remove freely. ---- */
   var REQUESTS = [
+    { id: 'wall-circle', name: 'Circle cross', img: 'wall-concept-circle', wall: true },
+    { id: 'wall-stacked', name: 'Cross & stacked name', img: 'wall-concept-stacked', wall: true },
+    { id: 'wall-mountain', name: 'Mountain range', img: 'wall-concept-mountain', wall: true },
+    { id: 'wall-badge', name: 'Circle badge', img: 'wall-concept-badge', wall: true },
+    { id: 'wall-ridge', name: 'Ridge line', img: 'wall-concept-ridge', wall: true },
     { id: 'tee', name: 'Heavyweight tee' }, { id: 'crew', name: 'Crewneck' }, { id: 'beanie', name: 'Beanie' },
-    { id: 'rope', name: 'Rope cap' }, { id: 'nameplate', name: 'Desk nameplate' }, { id: 'youth', name: 'Youth sizes' },
+    { id: 'rope', name: 'Rope cap' }, { id: 'nameplate', name: 'Desk nameplate', img: 'nameplate-desk' }, { id: 'youth', name: 'Youth sizes' },
     { id: 'patch', name: 'Patch set' }, { id: 'group', name: 'Church & team orders' }, { id: 'colours', name: 'More colours' }
   ];
 
@@ -61,7 +66,7 @@ var FF_CATALOG = (function () {
       dims: { crown: 4.4, visor: 2.9, visorW: 7.1 },
       care: 'Spot clean with cool water. Do not machine wash or tumble dry. Reshape the crown while damp.',
       inBox: ['Cap', 'Flight Tag (Drop 01 orders)'],
-      images: [], buyUrl: {}
+      images: ['cap-foundation-front', 'cap-foundation-detail'], photoColor: 0, buyUrl: {}
     },
     {
       id: 'cap-emblem', sku: 'FF-TRK-EMB', line: 'Trucker', cat: 'hats', level: 'Emblem', name: 'Emblem Trucker',
@@ -84,7 +89,7 @@ var FF_CATALOG = (function () {
       dims: { crown: 4.4, visor: 2.9, visorW: 7.1 },
       care: 'Spot clean with cool water. Do not machine wash or tumble dry. Reshape the crown while damp.',
       inBox: ['Cap', 'Flight Tag (Drop 01 orders)'],
-      images: [], buyUrl: {}
+      images: ['cap-emblem-front', 'cap-emblem-detail'], photoColor: 0, buyUrl: {}
     },
     {
       id: 'hoodie-foundation', sku: 'FF-HOD-FDN', line: 'Hoodie', cat: 'apparel', level: 'Foundation', name: 'Foundation Hoodie',
@@ -109,7 +114,7 @@ var FF_CATALOG = (function () {
       ],
       care: 'Machine wash cold, inside out. Tumble dry low or hang dry. Do not iron the embroidery.',
       inBox: ['Hoodie', 'Flight Tag (Drop 01 orders)'],
-      images: [], buyUrl: {}
+      images: ['cap-foundation-detail'], photoNote: 'Hoodie photography is coming. Shown: the embroidered mark.', buyUrl: {}
     },
     {
       id: 'hoodie-emblem', sku: 'FF-HOD-EMB', line: 'Hoodie', cat: 'apparel', level: 'Emblem', name: 'Emblem Hoodie',
@@ -134,7 +139,7 @@ var FF_CATALOG = (function () {
       ],
       care: 'Machine wash cold, inside out. Tumble dry low or hang dry. Do not iron the embroidery.',
       inBox: ['Hoodie', 'Flight Tag (Drop 01 orders)'],
-      images: [], buyUrl: {}
+      images: ['cap-emblem-detail'], photoNote: 'Hoodie photography is coming. Shown: the embroidered mark.', buyUrl: {}
     },
     {
       id: 'wall-foundation', sku: 'FF-WAL-FDN', line: 'Wall piece', cat: 'home', level: 'Foundation', name: 'Foundation Wall Piece',
@@ -157,7 +162,7 @@ var FF_CATALOG = (function () {
       deco: [],
       care: 'Dust with a dry microfibre cloth. Indoor use only.',
       inBox: ['Lettering & rails panel', 'Cross', 'Stand-offs and wall anchors', 'Paper drilling template', 'Flight Tag (Drop 01 orders)'],
-      images: [], buyUrl: {}
+      images: ['wall-foundation-room'], photoColor: 0, buyUrl: {}
     },
     {
       id: 'wall-emblem', sku: 'FF-WAL-EMB', line: 'Wall piece', cat: 'home', level: 'Emblem', name: 'Emblem Wall Piece',
@@ -180,7 +185,7 @@ var FF_CATALOG = (function () {
       deco: [],
       care: 'Dust with a dry microfibre cloth. Indoor use only.',
       inBox: ['Lines panel', 'Cross', 'Stand-offs and wall anchors', 'Paper drilling template', 'Flight Tag (Drop 01 orders)'],
-      images: [], buyUrl: {}
+      images: ['wall-emblem-room'], photoColor: 0, buyUrl: {}
     },
     {
       id: 'flight-tag', sku: 'FF-TAG-STD', line: 'Flight Tag', cat: 'accessories', level: 'Accessory', name: 'Flight Tag',
@@ -203,7 +208,7 @@ var FF_CATALOG = (function () {
       deco: [{ where: 'Front', art: 'Wide lockup', w: 4.1, h: 0.62, method: 'Flat embroidery', note: 'Standard size; scales with the tag' }, { where: 'Back', art: 'REMOVE BEFORE FLIGHT', w: 4.1, h: 0.42, method: 'Flat embroidery', note: 'Standard size; condensed sans' }],
       care: 'Hand wash if needed. Air dry.',
       inBox: ['Tag with split ring'],
-      images: [], buyUrl: {}
+      images: ['flight-tag-pair', 'flight-tag-front', 'flight-tag-back'], photoColor: 0, buyUrl: {}
     }
   ];
 

@@ -1,6 +1,6 @@
 # FAITH FOUND — 3D product system, cinematics and store
 
-Everything for Drop 01 (J1, January 1, 2027) in one place: six products in two levels plus the Flight Tag, modelled in 3D at real size; a cinematic film for each; a Studio to record them for social; and a GoHighLevel-ready store with the falling-products intro, the J1 countdown and interactive 3D product pages for phone and desktop.
+Everything for Drop 01 (J1, January 1, 2027) in one place: six products in two levels plus the Flight Tag; a GoHighLevel-ready store built on the real product photos, with the falling-photos intro and J1 countdown, for phone and desktop; and 3D models with a Studio for size checks and social films.
 
 ![Home](docs/img/site-home-desktop.jpg)
 
