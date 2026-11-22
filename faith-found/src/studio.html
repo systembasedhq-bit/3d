@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FAITH FOUND Studio</title>
+<meta name="description" content="FAITH FOUND product development studio: every product in 3D, with measurements, size comparison and the cinematic films.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@600;700&display=swap">
+<style>
+/* Studio layout: stage left, a quiet control column right (bottom sheet on phones), film transport along the bottom. */
+:root { --ink: #0c0b0a; --panel: #141210; --line: rgba(240,232,220,.12); --text: #efe8dc; --muted: #9b9286; --brass: #c7a26a; --serif: 'Cormorant Garamond', Georgia, serif; --sans: Inter, -apple-system, 'Segoe UI', Roboto, sans-serif; --mono: 'JetBrains Mono', ui-monospace, monospace; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ink); color: var(--text); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
+button, select { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.app { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr) 330px; grid-template-rows: auto minmax(0, 1fr) auto; }
+.top { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: max(10px, env(safe-area-inset-top)) 18px 10px; border-bottom: 1px solid var(--line); }
+.brand { font-family: var(--serif); font-size: 20px; letter-spacing: .16em; font-weight: 600; }
+.sub { color: var(--muted); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+.tagc { margin-left: auto; font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 99px; white-space: nowrap; }
+.stagewrap { position: relative; display: grid; place-items: center; min-height: 0; background: #050404; overflow: hidden; }
+.stage { position: relative; width: 100%; height: 100%; }
+.rec { position: absolute; top: 14px; left: 16px; display: none; align-items: center; gap: 8px; font: 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; background: rgba(0,0,0,.6); padding: 6px 10px; border-radius: 99px; z-index: 5; }
+.rec.on { display: flex; } .rec i { width: 8px; height: 8px; border-radius: 50%; background: #e0523c; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+.panel { grid-row: 2 / 4; grid-column: 2; border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; padding: 4px 18px 28px; }
+.grp { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.grp h3 { margin: 0 0 10px; font: 600 10px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--line); background: transparent; padding: 7px 10px; border-radius: 6px; font-size: 12px; min-height: 34px; }
+.seg button[aria-pressed='true'] { background: var(--text); color: var(--ink); border-color: var(--text); }
+.sw { display: flex; gap: 10px; flex-wrap: wrap; }
+.sw button { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); padding: 0; position: relative; }
+.sw button[aria-pressed='true']::after { content: ''; position: absolute; inset: -5px; border: 1.5px solid var(--text); border-radius: 50%; }
+.lbl { display: flex; justify-content: space-between; font-size: 12px; margin: 8px 0 4px; color: #d7cfc2; }
+select { width: 100%; background: #1b1916; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; }
+input[type=range] { width: 100%; accent-color: var(--brass); }
+.spec { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 12px; margin: 0; }
+.spec dt { color: var(--muted); } .spec dd { margin: 0; text-align: right; font-family: var(--mono); font-size: 11.5px; }
+.note { font-size: 11px; color: var(--muted); margin: 10px 0 0; }
+.bar { grid-column: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px max(10px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
+.btn { border: 1px solid var(--text); background: var(--text); color: var(--ink); padding: 0 16px; min-height: 38px; border-radius: 6px; font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.btn.ghost { background: transparent; color: var(--text); border-color: var(--line); }
+.btn.ghost[aria-pressed='true'] { border-color: var(--brass); color: var(--brass); }
+.btn.red { background: #b8412f; border-color: #b8412f; color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.shots { display: flex; gap: 6px; flex-wrap: wrap; }
+.shots button { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: 6px 12px; font-size: 12px; min-height: 34px; }
+.shots button[aria-pressed='true'] { border-color: var(--brass); color: var(--brass); }
+.status { font-size: 12px; color: var(--muted); margin-left: auto; }
+.sheet-btn, .sheet-head { display: none; }
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .panel { position: fixed; left: 0; right: 0; bottom: 0; max-height: 64vh; z-index: 30; border-left: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; transform: translateY(100%); transition: transform .3s ease; }
+  .panel.open { transform: none; }
+  .sheet-btn { display: inline-flex; align-items: center; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2; background: var(--panel); padding: 12px 0 10px; border-bottom: 1px solid var(--line); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+  .tagc, .sub { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><span class="brand">FAITH FOUND</span><span class="sub">Studio &middot; product development &amp; film</span><span class="tagc" id="sku">—</span></header>
+  <div class="stagewrap"><div class="stage" id="stage"><div class="rec" id="recdot"><i></i><span>Recording</span></div></div></div>
+  <aside class="panel" id="panel" aria-label="Product options">
+    <div class="sheet-head"><strong>Options</strong><button type="button" class="btn ghost" id="sheet-done">Done</button></div>
+    <div class="grp"><h3>Product</h3><select id="prod" aria-label="Product"></select></div>
+    <div class="grp"><h3>Colour</h3><div class="sw" id="colors"></div><div class="lbl"><span id="color-name"></span></div></div>
+    <div class="grp"><h3>Size</h3><div class="seg" id="sizes"></div></div>
+    <div class="grp" id="wallgrp" hidden><h3>Wall &amp; halo</h3><div class="seg" id="walls"></div>
+      <div class="lbl"><span>Halo</span><span id="halo-v">100%</span></div><input type="range" id="halo" min="0" max="1.4" step="0.01" value="1" aria-label="Halo brightness">
+      <div class="seg" id="kelvin" style="margin-top:8px"></div></div>
+    <div class="grp"><h3>Overlays</h3><div class="seg"><button type="button" id="measure" aria-pressed="false">Measure</button><button type="button" id="compare" aria-pressed="false">Size compare</button><button type="button" id="reset">Reset view</button></div></div>
+    <div class="grp"><h3>Film frame</h3><div class="seg" id="frames"></div><p class="note">16:9 web &middot; 9:16 Reels, TikTok, Shorts &middot; 1:1 and 4:5 feed.</p></div>
+    <div class="grp"><h3>Spec (from the model)</h3><dl class="spec" id="spec"></dl><p class="note">Concept values measured from the 3D model. Confirm materials, gauges and decoration sizes with each manufacturer.</p></div>
+  </aside>
+  <nav class="bar" aria-label="Film controls">
+    <button class="btn" id="play">Play film</button>
+    <div class="shots" id="shots" role="group" aria-label="Shots"></div>
+    <span class="status" id="status"></span>
+    <button class="btn ghost" id="still">Still</button>
+    <button class="btn red" id="record">Record film</button>
+    <button class="btn ghost sheet-btn" id="sheet" aria-controls="panel" aria-expanded="false">Options</button>
+  </nav>
+</div>
+<script>/*@CATALOG*/</script>
+<script type="module">/*@ENGINE*/</script>
+<script>
+(function () {
+  var C = window.FF_CATALOG, E, st, prodIdx = 0, colorIdx = 0, sizeIdx = 1, frame = 'Full', recording = false, wallFinish = 'plaster', kelvin = 3000;
+  var $ = function (id) { return document.getElementById(id); };
+  var q = new URLSearchParams(location.search);
+  var startId = q.get('p'); if (startId) C.PRODUCTS.forEach(function (p, i) { if (p.id === startId) prodIdx = i; });
+  if (q.get('c')) colorIdx = +q.get('c'); if (q.get('s')) sizeIdx = +q.get('s');
+  $('prod').innerHTML = C.PRODUCTS.map(function (p, i) { return '<option value="' + i + '">' + p.name + ' — ' + p.sku + '</option>'; }).join('');
+  var FR = { 'Full': null, '16:9': [1920, 1080], '9:16': [1080, 1920], '1:1': [1080, 1080], '4:5': [1080, 1350] };
+  $('frames').innerHTML = Object.keys(FR).map(function (k) { return '<button type="button" data-v="' + k + '" aria-pressed="' + (k === frame) + '">' + k + '</button>'; }).join('');
+  $('walls').innerHTML = [['plaster', 'Warm plaster'], ['charcoal', 'Charcoal']].map(function (w) { return '<button type="button" data-v="' + w[0] + '" aria-pressed="' + (w[0] === wallFinish) + '">' + w[1] + '</button>'; }).join('');
+  $('kelvin').innerHTML = [2700, 3000, 4000].map(function (k) { return '<button type="button" data-v="' + k + '" aria-pressed="' + (k === kelvin) + '">' + k + 'K</button>'; }).join('');
+  function P() { return C.PRODUCTS[prodIdx]; }
+  function pressed(el, v) { [].forEach.call(el.querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-v') === String(v))); }); }
+  function renderOpts() {
+    var p = P(); colorIdx = Math.min(colorIdx, p.colors.length - 1); sizeIdx = Math.min(sizeIdx, p.sizes.length - 1);
+    $('prod').value = prodIdx; $('sku').textContent = p.sku + ' · ' + p.level;
+    $('colors').innerHTML = p.colors.map(function (c, i) { return '<button type="button" data-v="' + i + '" aria-pressed="' + (i === colorIdx) + '" title="' + c.name + '" aria-label="' + c.name + '" style="background:' + c.hex + '"></button>'; }).join('');
+    $('color-name').textContent = p.colors[colorIdx].name;
+    $('sizes').innerHTML = p.sizes.map(function (s, i) { return '<button type="button" data-v="' + i + '" aria-pressed="' + (i === sizeIdx) + '">' + s.label + '</button>'; }).join('');
+    $('wallgrp').hidden = p.model !== 'wall';
+    $('compare').hidden = p.model === 'cap';
+    $('shots').innerHTML = (E ? E.FILMS[p.model] : []).map(function (s, i) { return '<button type="button" data-i="' + i + '" aria-pressed="false">' + s.name + '</button>'; }).join('');
+  }
+  function show(restage) {
+    if (!st) return; var p = P();
+    return st.show(p, sizeIdx, colorIdx, { restage: restage, staging: { wall: wallFinish } }).then(function (m) {
+      st.setHalo(+$('halo').value, kelvin);
+      $('spec').innerHTML = Object.keys(m.spec).map(function (k) { return '<dt>' + k + '</dt><dd>' + m.spec[k] + '</dd>'; }).join('') + '<dt>Price</dt><dd>$' + (p.sizes[sizeIdx].price || p.price) + '</dd>';
+      st.showMeasures($('measure').getAttribute('aria-pressed') === 'true');
+    });
+  }
+  function boot() {
+    E = window.FFEngine; renderOpts();
+    if (!E.webglOK()) { $('status').textContent = 'WebGL is not available in this browser.'; return; }
+    st = new E.Stage($('stage'), { preserve: true });
+    window.FFSTUDIO = { stage: st, show: show, set: function (pi, ci, si) { prodIdx = pi; colorIdx = ci; sizeIdx = si; renderOpts(); return show(true); } };
+    show(true).then(function () { document.body.setAttribute('data-ready', '1'); });
+  }
+  if (window.FFEngine) boot(); else window.addEventListener('ffengine:ready', boot, { once: true });
+
+  $('prod').onchange = function () { prodIdx = +this.value; sizeIdx = 1; colorIdx = 0; renderOpts(); show(true); };
+  $('colors').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; colorIdx = +b.getAttribute('data-v'); pressed(this, colorIdx); $('color-name').textContent = P().colors[colorIdx].name; show(); };
+  $('sizes').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; sizeIdx = +b.getAttribute('data-v'); pressed(this, sizeIdx); show(); };
+  $('walls').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; wallFinish = b.getAttribute('data-v'); pressed(this, wallFinish); show(true); };
+  $('kelvin').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; kelvin = +b.getAttribute('data-v'); pressed(this, kelvin); st.setHalo(+$('halo').value, kelvin); };
+  $('halo').oninput = function () { $('halo-v').textContent = Math.round(this.value * 100) + '%'; st.setHalo(+this.value, kelvin); };
+  $('measure').onclick = function () { var on = this.getAttribute('aria-pressed') !== 'true'; this.setAttribute('aria-pressed', String(on)); st.showMeasures(on); };
+  $('compare').onclick = function () { var on = this.getAttribute('aria-pressed') !== 'true'; this.setAttribute('aria-pressed', String(on)); st.showCompare(on); };
+  $('reset').onclick = function () { st.resetView(); };
+  function setFrame(f) {
+    frame = f; pressed($('frames'), f); var wrap = $('stage').parentElement.getBoundingClientRect(), s = $('stage'), d = FR[f];
+    if (!d) { s.style.width = ''; s.style.height = ''; return; }
+    var r = d[0] / d[1], w = wrap.width, h = wrap.height; if (w / h > r) w = h * r; else h = w / r; s.style.width = w + 'px'; s.style.height = h + 'px';
+  }
+  $('frames').onclick = function (e) { var b = e.target.closest('button'); if (b) setFrame(b.getAttribute('data-v')); };
+  window.addEventListener('resize', function () { setFrame(frame); });
+  function markShot(i) { [].forEach.call($('shots').querySelectorAll('button'), function (b, j) { b.setAttribute('aria-pressed', String(j === i)); }); }
+  function endFilm() { $('play').textContent = 'Play film'; markShot(-1); }
+  $('play').onclick = function () { if (st.film) { st.stopFilm(); return; } this.textContent = 'Stop'; st.playFilm({ onShot: markShot, onEnd: endFilm }); };
+  $('shots').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; $('play').textContent = 'Stop'; st.playFilm({ index: +b.getAttribute('data-i'), single: true, onShot: markShot, onEnd: endFilm }); };
+  function save(blob, name) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000); }
+  function fname(ext) { var p = P(); return 'faithfound-' + p.id + '-' + p.colors[colorIdx].id + '-' + p.sizes[sizeIdx].id + (frame !== 'Full' ? '-' + frame.replace(':', 'x') : '') + '.' + ext; }
+  $('still').onclick = function () { var d = FR[frame]; if (d) st.renderer.setPixelRatio(d[0] / st.w); st.resize(); st.renderer.domElement.toBlob(function (b) { save(b, fname('png')); st.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); st.resize(); $('status').textContent = 'Still saved.'; }); };
+  $('record').onclick = function () {
+    if (recording) return; var cv = st.renderer.domElement;
+    if (!('MediaRecorder' in window) || !cv.captureStream) { $('status').textContent = 'Recording needs Chrome, Edge or Safari 17+.'; return; }
+    if (frame === 'Full') setFrame('16:9');
+    var types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'], mime = types.filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0] || '';
+    recording = true; st.recording = true; st.renderer.setPixelRatio(FR[frame][0] / st.w); st.resize();
+    var rec = new MediaRecorder(cv.captureStream(30), mime ? { mimeType: mime, videoBitsPerSecond: 16e6 } : undefined), chunks = [];
+    rec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = function () { recording = false; st.recording = false; st.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); st.resize(); $('recdot').classList.remove('on'); $('record').disabled = false; var blob = new Blob(chunks, { type: mime || 'video/webm' }); save(blob, fname((mime || 'webm').indexOf('mp4') >= 0 ? 'mp4' : 'webm')); $('status').textContent = 'Film saved (' + (blob.size / 1e6).toFixed(1) + ' MB).'; };
+    $('recdot').classList.add('on'); this.disabled = true; $('status').textContent = 'Recording the full film…';
+    rec.start(250); $('play').textContent = 'Stop'; st.playFilm({ onShot: markShot, onEnd: function () { endFilm(); if (rec.state !== 'inactive') rec.stop(); } });
+  };
+  var panel = $('panel'), sheet = $('sheet');
+  sheet.onclick = function () { var o = !panel.classList.contains('open'); panel.classList.toggle('open', o); sheet.setAttribute('aria-expanded', String(o)); };
+  $('sheet-done').onclick = function () { panel.classList.remove('open'); sheet.setAttribute('aria-expanded', 'false'); };
+})();
+</script>
+</body>
+</html>
