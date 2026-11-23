@@ -9,11 +9,17 @@ The store is one self-contained block of HTML: `dist/faith-found-site.html`. It 
 | ![Home, desktop](img/site-home-desktop.jpg) | ![Home, phone](img/site-home-phone.jpg) |
 | ![Product, desktop](img/site-product-desktop.jpg) | ![Product, phone](img/site-product-phone.jpg) |
 
+## What's new in this version
+- **Intro:** the FAITH FOUND logo appears on black, then flies up into the nav while the products load.
+- **Hero slides:** 01 Drop 01 release (the niche wall in live 3D, products fall in, hover spins one; click opens it) · 02 News & events (from `NEWS` and `EVENTS` in the catalog, plus social links) · 03 Verse of the day (from `VERSES`, KJV, one a day; pin one with `SETTINGS.verse`). Autoplays every `heroAutoplaySeconds`, pauses on hover; swipe on phones.
+- **Nav:** bigger wordmark, News, the verse of the day and a live T-minus to the next drop.
+- **3D everywhere:** cards, the home wall, the Flight Tag section and product pages are all 3D. Embroidery and tag text are lifted from the real mock-up photos (`assets/photos`), so the stitching looks real; the photos also appear as extra thumbnails on product pages.
+
 ## Screens
 
 | Screen | Address | What it does |
 |---|---|---|
-| **Home** | `#home` | The six product photos drop into a grid (rows Foundation / Emblem, columns Wall piece / Hoodie / Trucker; two columns on phones), land with a small bounce, and their light comes on; then the J1 countdown, "Get the J1 reminder" and "The pieces". Below: the two levels in embroidery close-ups, the Drop 01 grid, the lit wall piece, the Flight Tag, why we exist, the 12-month timeline, the wall designs on the bench (vote), values. |
+| **Home (previous description)** | `#home` | The six product photos drop into a grid (rows Foundation / Emblem, columns Wall piece / Hoodie / Trucker; two columns on phones), land with a small bounce, and their light comes on; then the J1 countdown, "Get the J1 reminder" and "The pieces". Below: the two levels in embroidery close-ups, the Drop 01 grid, the lit wall piece, the Flight Tag, why we exist, the 12-month timeline, the wall designs on the bench (vote), values. |
 | **Shop** | `#shop`, `#shop/hats`, `#shop/apparel`, `#shop/home`, `#shop/accessories` | All pieces or one category. Cards use images rendered from the 3D models (or your photos when added). |
 | **Product** | `#p/<product-id>` | Photo gallery (click to zoom on desktop, tap for full screen on phones). Wall pieces and the tag add a **3D · Size** view with dimensions and a 5′10″ person or a bank card for scale. Level switch (Foundation ⇄ Emblem), colour (with a note when the photo shows another colour), size, price by size, countdown until its drop, then Notify me or Buy. Details, a to-scale **Size guide** (sofa and person for wall pieces, bank card for the tag), Decoration, In the box, Care, Shipping. |
 | **Drops** | `#drops` | The countdown to the next drop, every drop for the year with its status, and the vote. |

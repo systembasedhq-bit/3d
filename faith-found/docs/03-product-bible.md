@@ -11,7 +11,7 @@ All data below lives in `src/catalog.js`. Dimensions marked "from the model" are
 | FF-HOD-FDN | Foundation Hoodie | Hoodie | Foundation | M · L · XL | Black · Deep Olive · Bone | $88 |
 | FF-HOD-EMB | Emblem Hoodie | Hoodie | Emblem | M · L · XL | Black · Deep Olive · Bone | $84 |
 | FF-WAL-FDN | Foundation Wall Piece | Wall piece | Foundation | 36 · 48 · 60 in | Matte Black · Gunmetal · Black & Brass | $340 / $460 / $620 |
-| FF-WAL-EMB | Emblem Wall Piece | Wall piece | Emblem | 30 · 40 · 50 in | Matte Black · Gunmetal · Black & Brass | $220 / $290 / $380 |
+| FF-WAL-EMB | Emblem Wall Piece | Wall piece | Emblem | 24 · 30 · 36 in tall | Matte Black · Gunmetal · Brushed Brass | $220 / $290 / $380 |
 | FF-TAG-STD | Flight Tag | Accessory | — | Mini · Standard · Large | Black/White · Olive/Bone · Bone/Black | $12 / $14 / $16 |
 
 ---
@@ -24,9 +24,11 @@ All data below lives in `src/catalog.js`. Dimensions marked "from the model" are
 
 | | From the model (Adult) |
 |---|---|
-| Crown height | 4.41 in |
-| Visor length | 2.91 in |
-| Visor width | 7.13 in |
+| Crown height | about 3¾ in |
+| Visor length | about 2¾ in |
+| Visor width | about 7¼ in |
+
+These follow the published Richardson 112 profile (structured mid-profile, pre-curved visor). Confirm them against Richardson's current spec sheet before production; the 3D model reads them from `R112` in `src/engine.js`.
 
 | Fit | Head size | Blank |
 |---|---|---|
@@ -77,7 +79,7 @@ Launch sizes are M, L and XL; S and 2XL are the first candidates to add (see the
 
 | Level | Art | Size | Placement | Method |
 |---|---|---|---|---|
-| Foundation | Lockup (stacked) | 9.0 × 2.82 in | Centre chest; top of cross 3½ in below the front neck seam | Flat satin |
+| Foundation | Lockup (stacked) | 11 × 4.1 in | Centre chest; top of cross 4½ in below the front neck seam | Flat satin |
 | Emblem | Outline cross | 2.33 × 3.25 in | Left chest (wearer's left); centre 4 in from centre front; top 7½ in below the high point of the shoulder | Flat satin, outline |
 | Both | Woven label | 2.75 × 1.0 in | Left sleeve, outer side, 2 in above the cuff seam | Damask woven, sewn on 4 sides |
 
@@ -101,23 +103,19 @@ Back: blank on both levels (as in the references). Inside neck: a matching woven
 
 Back layer: FAITH and FOUND with a rail along the cap line and one along the baseline. The rails touch the letters, so all the lettering is **one cut piece** that hangs straight from two stand-offs. LOVE – INTEGRITY – PURPOSE sits below the cross.
 
-**Emblem** (from the model)
+**Emblem**: the cross alone, cut as an outline with an inset core (a fine gap lets the halo light through), floated 1¾ in off the wall on four hidden stand-offs. The finish covers the whole cross.
 
-![Emblem Wall Piece, size comparison](img/wall-emblem-compare.jpg)
-
-| Size | Width × height | Cross height | Est. steel weight |
-|---|---|---|---|
-| 30 in | 30 × 12.0 in (76 × 30 cm) | 12 in | ~2.5 lb (1.1 kg) |
-| 40 in | 40 × 16.0 in (102 × 41 cm) | 16 in | ~4.4 lb (2.0 kg) |
-| 50 in | 50 × 20.0 in (127 × 51 cm) | 20 in | ~6.8 lb (3.1 kg) |
-
-Back layer: three lines either side at 30%, 41% and 52% of the cross height, the top line longest. A spine hidden behind the cross stem joins all six into **one piece**.
-
-| Colourway | Cross | Back layer |
+| Size (height) | Width × height | Plate |
 |---|---|---|
-| Matte Black | Matte black | Matte black |
-| Gunmetal | Gunmetal | Gunmetal |
-| Black & Brass | Matte black | Brass finish |
+| 24 in | 17.2 × 24 in | 3/16 in steel |
+| 30 in | 21.5 × 30 in | 3/16 in steel |
+| 36 in | 25.8 × 36 in | 3/16 in steel |
+
+| Colourway | Foundation (cross / lettering) | Emblem (whole cross) |
+|---|---|---|
+| Matte Black | Matte black / matte black | Matte black |
+| Gunmetal | Gunmetal / gunmetal | Gunmetal |
+| Black & Brass / Brushed Brass | Matte black / brass | Brushed brass |
 
 **Questions for the fabricator**
 - Gauge and finish: 11 ga back layer, 3/16 in cross, powder coat vs. plated brass.

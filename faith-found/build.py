@@ -30,6 +30,8 @@ def build(template, out):
     html = read(template)
     engine = read("engine.js")                      # uses the global BRAND defined with the catalog
     catalog = read("brand.js") + "\n" + read("catalog.js")
+    css = (SRC / "site.css").read_text(encoding="utf-8") if "/*@CSS*/" in html else ""
+    html = html.replace("/*@CSS*/", css)
     for marker, value in (("/*@CATALOG*/", catalog), ("/*@ENGINE*/", engine), ("/*@IMAGES*/", None)):
         if marker == "/*@IMAGES*/":
             if marker in html:

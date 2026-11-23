@@ -63,7 +63,7 @@ var FF_CATALOG = (function () {
       story: 'FAITH, the cross, FOUND. The whole mark across the front of the trucker you already reach for: structured front, breathable mesh back, snapback strap.',
       details: ['Richardson 112 trucker: structured mid-profile 6-panel, pre-curved visor', 'Cotton-poly twill front, polyester mesh back (per Richardson spec)', 'Adjustable plastic snapback', 'Cross in raised 3D puff; FAITH FOUND in flat satin stitch'],
       deco: [{ where: 'Front, centred on the seam', art: 'Foundation lockup', w: 4.5, h: 1.41, method: '3D puff cross + flat satin lettering', note: 'Centred about 2 in above the visor seam' }],
-      dims: { crown: 4.4, visor: 2.9, visorW: 7.1 },
+      dims: { crown: 3.75, visor: 2.75, visorW: 7.2 },
       care: 'Spot clean with cool water. Do not machine wash or tumble dry. Reshape the crown while damp.',
       inBox: ['Cap', 'Flight Tag (Drop 01 orders)'],
       images: ['cap-foundation-front', 'cap-foundation-detail'], photoColor: 0, buyUrl: {}
@@ -86,7 +86,7 @@ var FF_CATALOG = (function () {
       story: 'Just the mark. A raised outline cross on the front panel, nothing else to read. The quieter of the two.',
       details: ['Richardson 112 trucker: structured mid-profile 6-panel, pre-curved visor', 'Cotton-poly twill front, polyester mesh back (per Richardson spec)', 'Adjustable plastic snapback', 'Outline cross in raised 3D puff embroidery'],
       deco: [{ where: 'Front, centred on the seam', art: 'Emblem cross', w: 1.79, h: 2.5, method: '3D puff, outline', note: 'Centred about 2⅛ in above the visor seam' }],
-      dims: { crown: 4.4, visor: 2.9, visorW: 7.1 },
+      dims: { crown: 3.75, visor: 2.75, visorW: 7.2 },
       care: 'Spot clean with cool water. Do not machine wash or tumble dry. Reshape the crown while damp.',
       inBox: ['Cap', 'Flight Tag (Drop 01 orders)'],
       images: ['cap-emblem-front', 'cap-emblem-detail'], photoColor: 0, buyUrl: {}
@@ -109,7 +109,7 @@ var FF_CATALOG = (function () {
       story: 'FAITH ✝ FOUND embroidered across the chest, a woven label on the left cuff, and nothing on the back. Heavy fleece that holds its shape.',
       details: ['Heavyweight cotton fleece, about 13–14½ oz (450–500 gsm), brushed inside (TBC)', 'Relaxed fit, dropped shoulder', 'Double-layer hood, flat drawcords with metal tips', 'Kangaroo pocket, 2×1 rib cuffs and hem', 'Woven FAITH FOUND label on the left sleeve'],
       deco: [
-        { where: 'Centre chest', art: 'Foundation lockup', w: 9.0, h: 2.82, method: 'Flat satin embroidery', note: 'Top of cross 3½ in below the front neck seam' },
+        { where: 'Centre chest', art: 'Foundation lockup', w: 11.0, h: 4.1, method: 'Flat satin embroidery', note: 'Top of cross 4½ in below the front neck seam' },
         { where: 'Left sleeve (wearer’s left), outer side', art: 'Woven label', w: 2.75, h: 1.0, method: 'Damask woven label, sewn on 4 sides', note: '2 in above the cuff seam' }
       ],
       care: 'Machine wash cold, inside out. Tumble dry low or hang dry. Do not iron the embroidery.',
@@ -169,23 +169,23 @@ var FF_CATALOG = (function () {
       model: 'wall', art: 'emblem', drop: 'd01', status: 'auto', price: 220,
       blank: 'Laser-cut steel, TBC',
       sizes: [
-        { id: '30', label: '30 in', w: 30, h: 12.0, depth: 1.96, lb: 2.5, price: 220 },
-        { id: '40', label: '40 in', w: 40, h: 16.0, depth: 1.96, lb: 4.4, price: 290 },
-        { id: '50', label: '50 in', w: 50, h: 20.0, depth: 1.96, lb: 6.8, price: 380 }
+        { id: '24', label: '24 in', h: 24, w: 17.2, depth: 1.94, lb: 0, price: 220 },
+        { id: '30', label: '30 in', h: 30, w: 21.5, depth: 1.94, lb: 0, price: 290 },
+        { id: '36', label: '36 in', h: 36, w: 25.8, depth: 1.94, lb: 0, price: 380 }
       ],
       colors: [
         { id: 'black', name: 'Matte Black', hex: '#161514', body: 'black', accent: 'black' },
         { id: 'gunmetal', name: 'Gunmetal', hex: '#3a3936', body: 'gunmetal', accent: 'gunmetal' },
-        { id: 'brass', name: 'Black & Brass', hex: '#b48c52', body: 'black', accent: 'brass' }
+        { id: 'brass', name: 'Brushed Brass', hex: '#b48c52', body: 'brass', accent: 'brass' }
       ],
       addons: [{ id: 'halo', name: 'LED halo backlight', price: 60, note: 'Warm 3000K strip behind the piece, plug-in driver (TBC)' }],
-      blurb: 'The cross with three lines either side, in cut steel.',
-      story: 'The mark alone, with three lines running out from it like a horizon. Cut in steel and floated in two layers so the shadow does half the work.',
-      details: ['Two layers of laser-cut steel, powder coated (TBC 11 ga / 3 mm)', 'The six lines are one piece, joined behind the cross', 'Cross on 1¾ in stand-offs, lines on 1 in', 'Optional warm LED halo behind', 'Drilling template and hardware included'],
+      blurb: 'The cross alone, cut in steel and floated off the wall.',
+      story: 'Just the mark. An outline cross with an inset core, cut in steel and floated 1¾ in off the wall so the shadow and the halo do the rest. The finish you pick covers the whole cross.',
+      details: ['Laser-cut steel, 3/16 in (4.8 mm), finished in matte black, gunmetal or brushed brass (TBC)', 'Outline cross with an inset core: a fine gap lets the light through', 'Floats 1¾ in off the wall on four hidden stand-offs', 'Optional warm LED halo behind', 'Drilling template and hardware included'],
       deco: [],
       care: 'Dust with a dry microfibre cloth. Indoor use only.',
-      inBox: ['Lines panel', 'Cross', 'Stand-offs and wall anchors', 'Paper drilling template', 'Flight Tag (Drop 01 orders)'],
-      images: ['wall-emblem-room'], photoColor: 0, buyUrl: {}
+      inBox: ['Cross (outline and core)', 'Stand-offs and wall anchors', 'Paper drilling template', 'Flight Tag (Drop 01 orders)'],
+      images: [], buyUrl: {}
     },
     {
       id: 'flight-tag', sku: 'FF-TAG-STD', line: 'Flight Tag', cat: 'accessories', level: 'Accessory', name: 'Flight Tag',
@@ -212,6 +212,52 @@ var FF_CATALOG = (function () {
     }
   ];
 
+  /* ---- News, events and the verse of the day: the home page is a hub, not only a shop. Edit freely. ---- */
+  var NEWS = [
+    { date: '2026-11-23', title: 'Drop 01 is set for J1', body: 'The first six pieces open January 1 at midnight Eastern: the Trucker, the Hoodie and the Wall Piece, each in Foundation and Emblem.', link: '#drops' },
+    { date: '2026-11-23', title: 'A Flight Tag in every Drop 01 box', body: 'FAITH ✝ FOUND on one side, REMOVE BEFORE FLIGHT on the other. It ships free with every Drop 01 order.', link: '#p/flight-tag' },
+    { date: '2026-11-23', title: 'You choose Drop 03', body: 'Five wall designs and a list of ideas are on the bench. The most-asked-for becomes Drop 03.', link: '#vote' }
+  ];
+  var EVENTS = [
+    { date: '2027-01-01T00:00:00-05:00', title: 'Drop 01 opens', place: 'Online · faithfound', link: '#drops' },
+    { date: '2027-02-01T09:00:00-05:00', title: 'The vote opens', place: 'Drops page', link: '#vote' },
+    { date: '2027-03-01T00:00:00-05:00', title: 'Drop 02: Flight Tag & first colourways', place: 'Online', link: '#drops' }
+  ];
+  /* King James Version (public domain). One a day, in order; set SETTINGS.verse to pin one. */
+  var VERSES = [
+    ['Proverbs 3:5–6', 'Trust in the LORD with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.'],
+    ['Isaiah 40:31', 'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.'],
+    ['Micah 6:8', 'He hath shewed thee, O man, what is good; and what doth the LORD require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?'],
+    ['Psalm 46:10', 'Be still, and know that I am God: I will be exalted among the heathen, I will be exalted in the earth.'],
+    ['Joshua 1:9', 'Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest.'],
+    ['Matthew 5:16', 'Let your light so shine before men, that they may see your good works, and glorify your Father which is in heaven.'],
+    ['Colossians 3:23', 'And whatsoever ye do, do it heartily, as to the Lord, and not unto men;'],
+    ['Mark 12:31', 'And the second is like, namely this, Thou shalt love thy neighbour as thyself. There is none other commandment greater than these.'],
+    ['Proverbs 10:9', 'He that walketh uprightly walketh surely: but he that perverteth his ways shall be known.'],
+    ['Philippians 1:6', 'Being confident of this very thing, that he which hath begun a good work in you will perform it until the day of Jesus Christ:'],
+    ['Hebrews 11:1', 'Now faith is the substance of things hoped for, the evidence of things not seen.'],
+    ['2 Corinthians 5:7', 'For we walk by faith, not by sight.'],
+    ['Galatians 6:9', 'And let us not be weary in well doing: for in due season we shall reap, if we faint not.'],
+    ['Psalm 119:105', 'Thy word is a lamp unto my feet, and a light unto my path.'],
+    ['Matthew 6:33', 'But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.'],
+    ['1 Peter 4:10', 'As every man hath received the gift, even so minister the same one to another, as good stewards of the manifold grace of God.'],
+    ['Romans 12:2', 'And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God.'],
+    ['Isaiah 41:10', 'Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee; yea, I will uphold thee with the right hand of my righteousness.'],
+    ['John 13:34', 'A new commandment I give unto you, That ye love one another; as I have loved you, that ye also love one another.'],
+    ['Psalm 37:5', 'Commit thy way unto the LORD; trust also in him; and he shall bring it to pass.'],
+    ['Ephesians 2:10', 'For we are his workmanship, created in Christ Jesus unto good works, which God hath before ordained that we should walk in them.'],
+    ['Lamentations 3:22–23', 'It is of the LORD’s mercies that we are not consumed, because his compassions fail not. They are new every morning: great is thy faithfulness.'],
+    ['James 1:22', 'But be ye doers of the word, and not hearers only, deceiving your own selves.'],
+    ['Mark 10:45', 'For even the Son of man came not to be ministered unto, but to minister, and to give his life a ransom for many.'],
+    ['Romans 8:28', 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.'],
+    ['John 3:16', 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.'],
+    ['Philippians 4:13', 'I can do all things through Christ which strengtheneth me.'],
+    ['Psalm 23:1', 'The LORD is my shepherd; I shall not want.'],
+    ['Hebrews 10:24', 'And let us consider one another to provoke unto love and to good works:'],
+    ['Jeremiah 29:11', 'For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.'],
+    ['Matthew 11:28', 'Come unto me, all ye that labour and are heavy laden, and I will give you rest.']
+  ];
+
   var LINES = [
     { id: 'Trucker', cat: 'hats', name: 'Trucker', products: ['cap-foundation', 'cap-emblem'] },
     { id: 'Hoodie', cat: 'apparel', name: 'Hoodie', products: ['hoodie-foundation', 'hoodie-emblem'] },
@@ -223,6 +269,6 @@ var FF_CATALOG = (function () {
     { id: 'home', name: 'Home', blurb: 'Cut steel for the walls you live with.' },
     { id: 'accessories', name: 'Accessories', blurb: 'Small things that go everywhere with you.' }
   ];
-  return { DROPS: DROPS, REQUESTS: REQUESTS, PRODUCTS: PRODUCTS, LINES: LINES, CATS: CATS };
+  return { DROPS: DROPS, REQUESTS: REQUESTS, PRODUCTS: PRODUCTS, LINES: LINES, CATS: CATS, NEWS: NEWS, EVENTS: EVENTS, VERSES: VERSES };
 })();
 if (typeof window !== 'undefined') window.FF_CATALOG = FF_CATALOG;
